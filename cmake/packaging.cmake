@@ -148,6 +148,25 @@ if(APPLE)
 	COMPONENT applications
     )
 
+    install(CODE "
+        set(_app \"\${CMAKE_INSTALL_PREFIX}/${mrv2_NAME}.app/Contents\")
+        set(_exe \"\${CMAKE_INSTALL_PREFIX}/bin/${mrv2_NAME}\")
+        if(EXISTS \"\${_exe}\")
+            file(COPY \"\${_exe}\" DESTINATION \"\${_app}/MacOS\")
+            execute_process(COMMAND chmod 755 \"\${_app}/MacOS/${mrv2_NAME}\")
+        endif()
+        if(EXISTS \"\${_app}/Resources/lib\" AND NOT EXISTS \"\${_app}/lib\")
+            execute_process(
+                COMMAND \${CMAKE_COMMAND} -E create_symlink
+                    \"Resources/lib\" \"\${_app}/lib\")
+        endif()
+        if(EXISTS \"\${_app}/Resources/bin\" AND NOT EXISTS \"\${_app}/bin\")
+            execute_process(
+                COMMAND \${CMAKE_COMMAND} -E create_symlink
+                    \"Resources/bin\" \"\${_app}/bin\")
+        endif()
+    " COMPONENT applications)
+
     # Install README.md file at root of .dmg
     install(FILES "${CMAKE_SOURCE_DIR}/etc/macOS/README.md"
         DESTINATION .

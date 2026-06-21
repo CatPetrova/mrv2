@@ -24,6 +24,9 @@ namespace py = pybind11;
 #include "mrvApp/mrvPlaylistsModel.h"
 #include "mrvApp/mrvFilesModel.h"
 #include "mrvApp/mrvMainControl.h"
+#ifdef __APPLE__
+#    include "mrvApp/mrvMacOSOpen.h"
+#endif
 #include "mrvApp/mrvSettingsObject.h"
 
 #include "mrvUI/mrvOpenSeparateAudioDialog.h"
@@ -270,6 +273,15 @@ namespace mrv
     std::vector<std::string > OSXfiles;
     void osx_open_cb(const char* filename)
     {
+        if (!filename || !filename[0])
+            return;
+
+        if (App::app && App::ui)
+        {
+            App::app->open(filename);
+            return;
+        }
+
         OSXfiles.push_back(filename);
     }
 
@@ -312,6 +324,13 @@ namespace mrv
         _p(new Private)
     {
         TLRENDER_P();
+
+#ifdef __APPLE__
+        // Register before any FLTK/AppKit initialization so launch-time
+        // documents are cached instead of being dropped by macOS.
+        fl_open_callback(osx_open_cb);
+        installMacOSOpenDocumentHandler(osx_open_cb);
+#endif
 
         // Establish MRV2_ROOT environment variable
         set_root_path(argc, argv);
@@ -533,11 +552,6 @@ namespace mrv
             return;
         }
 
-#ifdef __APPLE__
-        // For macOS, to read command-line arguments
-        fl_open_callback(osx_open_cb);
-#endif
-
         DBG;
         file::Path lastPath;
         const auto& unusedArgs = getUnusedArgs();
@@ -720,6 +734,7 @@ namespace mrv
             {
                 p.options.fileNames = OSXfiles;
             }
+            OSXfiles.clear();
         }
 
 #ifdef MRV2_NETWORK

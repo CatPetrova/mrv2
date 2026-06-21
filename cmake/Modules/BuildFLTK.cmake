@@ -9,7 +9,7 @@ set(FLTK_GIT_TAG v2.0.8)  # v1.9.8 is good but has no tablet support
 #set(FLTK_GIT_TAG vk)  # Cutting edge!
 #set(FLTK_GIT_TAG vk_merge) # Testing branch
 
-if(MRV2_VK)
+if(MRV2_VK OR APPLE)
     message(STATUS "Using ggarra13's private FLTK branch")
     set(USER_NAME $ENV{USER})
     if (USER_NAME STREQUAL "gga" OR USER_NAME STREQUAL "User-PC" OR
@@ -96,6 +96,8 @@ if (FLTK_BUILD_VK)
 endif()
 
 set(FLTK_PATCH
+    git apply
+        ${PROJECT_SOURCE_DIR}/cmake/patches/FLTK-patch/open-documents.patch
 )
 
 if (APPLE OR WIN32)

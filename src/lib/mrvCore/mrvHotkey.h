@@ -197,9 +197,11 @@ namespace mrv
 
     extern Hotkey kFrameStepBack;
     extern Hotkey kFrameStepFPSBack;
+    extern Hotkey kFrameStep2SecondsBack;
 
     extern Hotkey kFrameStepFwd;
     extern Hotkey kFrameStepFPSFwd;
+    extern Hotkey kFrameStep2SecondsFwd;
     
     extern Hotkey kPlayBack;
     extern Hotkey kPlayBackHalfSpeed;

@@ -38,6 +38,7 @@
 #include <cstring>
 #include <cmath>
 #include <filesystem>
+#include <setjmp.h>
 namespace fs = std::filesystem;
 
 

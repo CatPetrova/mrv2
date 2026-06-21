@@ -1914,9 +1914,27 @@ namespace mrv
                     frameNext();
                     return 1;
                 }
+                else if (kFrameStep2SecondsFwd.match(rawkey))
+                {
+                    auto player = getTimelinePlayer();
+                    if (!player)
+                        return 1;
+
+                    player->seekRelativeSeconds(2.0);
+                    return 1;
+                }
                 else if (kFrameStepBack.match(rawkey))
                 {
                     framePrev();
+                    return 1;
+                }
+                else if (kFrameStep2SecondsBack.match(rawkey))
+                {
+                    auto player = getTimelinePlayer();
+                    if (!player)
+                        return 1;
+
+                    player->seekRelativeSeconds(-2.0);
                     return 1;
                 }
                 else if (kRedoDraw.match(rawkey))

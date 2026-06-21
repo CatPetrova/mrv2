@@ -18,12 +18,31 @@ done
 
 BUNDLE_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")/.." && pwd)"
 RESOURCES_DIR="$BUNDLE_DIR/Resources"
-BIN_DIR="$RESOURCES_DIR/bin"
-LIB_DIR="$RESOURCES_DIR/lib"
+APP_DIR="$(cd -P "$BUNDLE_DIR/.." && pwd)"
+
+if [ -x "$RESOURCES_DIR/bin/mrv2" ]; then
+    BIN_DIR="$RESOURCES_DIR/bin"
+    LIB_DIR="$RESOURCES_DIR/lib"
+elif [ -x "$APP_DIR/../bin/mrv2" ]; then
+    BIN_DIR="$(cd -P "$APP_DIR/../bin" && pwd)"
+    LIB_DIR="$(cd -P "$APP_DIR/../lib" && pwd)"
+else
+    echo "Could not find mrv2 executable next to the app bundle." >&2
+    exit 1
+fi
 
 # --- Environment setup ---
 export DYLD_LIBRARY_PATH="$LIB_DIR:${DYLD_LIBRARY_PATH:-}"
 export DYLD_FALLBACK_LIBRARY_PATH="$LIB_DIR"
+
+if [ -f "$BIN_DIR/environment.sh" ]; then
+    # shellcheck source=/dev/null
+    set +e
+    set +u
+    source "$BIN_DIR/environment.sh"
+    set -e
+    set -u
+fi
 
 # Vulkan / MoltenVK setup
 export VK_ICD_FILENAMES="$RESOURCES_DIR/etc/vulkan/icd.d/MoltenVK_icd.json${VK_ICD_FILENAMES:+:$VK_ICD_FILENAMES}"

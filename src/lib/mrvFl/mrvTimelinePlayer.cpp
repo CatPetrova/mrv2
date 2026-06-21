@@ -59,6 +59,11 @@ namespace mrv
             delete data;
         }
 
+        void relative_seek_cb(TimelinePlayer* player)
+        {
+            player->applyPendingRelativeSeek();
+        }
+
     } // namespace
 
     struct TimelinePlayer::Private
@@ -79,6 +84,10 @@ namespace mrv
         //! Variable used to mark stepping behavior so the playback happens in
         //! 1/rate of time to play audio while stepping back/fwd.
         bool isStepping = false;
+
+        bool relativeSeekScheduled = false;
+        bool hasPendingRelativeSeek = false;
+        otime::RationalTime pendingRelativeSeek;
 
         //! Measuring timer
 #ifdef DEBUG_SPEED
@@ -161,6 +170,7 @@ namespace mrv
     TimelinePlayer::~TimelinePlayer()
     {
         Fl::remove_timeout((Fl_Timeout_Handler)timerEvent_cb, this);
+        Fl::remove_timeout((Fl_Timeout_Handler)relative_seek_cb, this);
     }
 
     const std::weak_ptr<system::Context>& TimelinePlayer::getContext() const
@@ -374,6 +384,41 @@ namespace mrv
         _p->player->seek(value);
         if (timelineViewport)
             timelineViewport->updateUndoRedoButtons();
+    }
+
+    void TimelinePlayer::seekRelativeSeconds(const double seconds)
+    {
+        const auto range = timeRange();
+        auto time =
+            _p->hasPendingRelativeSeek ? _p->pendingRelativeSeek : currentTime();
+        time += otime::RationalTime(seconds, 1.0).rescaled_to(time.rate());
+
+        const auto start = range.start_time().rescaled_to(time.rate());
+        const auto end = range.end_time_inclusive().rescaled_to(time.rate());
+        if (time < start)
+            time = start;
+        else if (time > end)
+            time = end;
+
+        _p->pendingRelativeSeek = time;
+        _p->hasPendingRelativeSeek = true;
+
+        if (!_p->relativeSeekScheduled)
+        {
+            _p->relativeSeekScheduled = true;
+            Fl::add_timeout(1.0 / 30.0, (Fl_Timeout_Handler)relative_seek_cb, this);
+        }
+    }
+
+    void TimelinePlayer::applyPendingRelativeSeek()
+    {
+        _p->relativeSeekScheduled = false;
+        if (!_p->hasPendingRelativeSeek)
+            return;
+
+        const auto time = _p->pendingRelativeSeek;
+        _p->hasPendingRelativeSeek = false;
+        seek(time);
     }
 
     void TimelinePlayer::timeAction(timeline::TimeAction value)

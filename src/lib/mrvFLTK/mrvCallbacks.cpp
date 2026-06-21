@@ -2434,7 +2434,7 @@ namespace mrv
     {
         ui->uiView->framePrev();
     }
-    
+
     void next_second_cb(Fl_Menu_*, ViewerUI* ui)
     {
         auto player = ui->uiView->getTimelinePlayer();
@@ -2453,6 +2453,22 @@ namespace mrv
         auto time = player->currentTime();
         time -= otime::RationalTime(10.0, 1.0).rescaled_to(time.rate());
         player->seek(time);
+    }
+
+    void next_two_seconds_cb(Fl_Menu_*, ViewerUI* ui)
+    {
+        auto player = ui->uiView->getTimelinePlayer();
+        if (!player)
+            return;
+        player->seekRelativeSeconds(2.0);
+    }
+
+    void previous_two_seconds_cb(Fl_Menu_*, ViewerUI* ui)
+    {
+        auto player = ui->uiView->getTimelinePlayer();
+        if (!player)
+            return;
+        player->seekRelativeSeconds(-2.0);
     }
 
     void toggle_otio_clip_in_out_cb(Fl_Menu_*, ViewerUI* ui)
@@ -3030,30 +3046,6 @@ namespace mrv
         image_version_cb(ui, 1, true);
     }
 
-    void unlock_features_cb(Fl_Menu_*, ViewerUI* ui)
-    {        
-#ifdef _WIN32
-        std::string helper = rootpath() + "/bin/license_helper.exe";
-#else
-        std::string helper = rootpath() + "/bin/license_helper";
-#endif
-#ifdef __APPLE__
-        // This is needed for macOS installed bundle.
-        if (!file::isReadable(helper))
-        {
-            helper = rootpath() + "/../Resources/bin/license_helper";
-        }
-#endif
-
-        if (!file::isReadable(helper))
-        {
-            LOG_ERROR(_("Install is broken.  Missing license_helper"));
-        }
-        
-        int ret = os::exec_command(helper);
-        if (ret != 0) return;
-    }
-    
     void help_documentation_cb(Fl_Menu_*, ViewerUI* ui)
     {
         const std::string& docs = docspath();

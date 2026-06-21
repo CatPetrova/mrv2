@@ -1147,7 +1147,15 @@ namespace mrv
         menu->add(
             _("Playback/Go to/Next Frame"), kFrameStepFwd.hotkey(),
             (Fl_Callback*)next_frame_cb, ui, FL_MENU_DIVIDER | mode);
-        
+
+        menu->add(
+            _("Playback/Go to/Previous 2 seconds"),
+            kFrameStep2SecondsBack.hotkey(),
+            (Fl_Callback*)previous_two_seconds_cb, ui, mode);
+        menu->add(
+            _("Playback/Go to/Next 2 seconds"), kFrameStep2SecondsFwd.hotkey(),
+            (Fl_Callback*)next_two_seconds_cb, ui, FL_MENU_DIVIDER | mode);
+
         menu->add(
             _("Playback/Go to/Previous 10 seconds"), kFrameStepFPSBack.hotkey(),
             (Fl_Callback*)previous_second_cb, ui, mode);
@@ -2006,8 +2014,11 @@ namespace mrv
         }
 #endif
 
-        if (dynamic_cast< DummyClient* >(tcp) == nullptr ||
-            panel::networkPanel || panel::webrtcPanel)
+        bool hasSyncTarget = dynamic_cast< DummyClient* >(tcp) == nullptr;
+#ifdef MRV2_NETWORK
+        hasSyncTarget = hasSyncTarget || panel::networkPanel || panel::webrtcPanel;
+#endif
+        if (hasSyncTarget)
         {
             mode = FL_MENU_TOGGLE;
 
@@ -2184,11 +2195,8 @@ namespace mrv
 #endif
 
         menu->add(
-            _("Help/Unlock Features"), 0,
-            (Fl_Callback*) unlock_features_cb, ui, FL_MENU_DIVIDER);
-        menu->add(
             _("Help/Documentation"), 0, (Fl_Callback*)help_documentation_cb,
-            ui);
+            ui, FL_MENU_DIVIDER);
         menu->add(
             _("Help/About"), kToggleAbout.hotkey(), (Fl_Callback*)window_cb,
             ui);

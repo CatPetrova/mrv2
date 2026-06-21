@@ -8,20 +8,20 @@ namespace mrv
 {
     namespace app
     {
-        bool demo_mode = true;
+        bool demo_mode = false;
         bool force_demo = false;
 
         std::string session_id = "";
-        LicenseType license_type = LicenseType::kDemo;
+        LicenseType license_type = LicenseType::kNodeLocked;
         
         bool soporta_hdr = true;
         bool soporta_layers = true;
         bool soporta_saving = true;
         
-        bool soporta_annotations = false;
-        bool soporta_editing = false;
-        bool soporta_python = false;
-        bool soporta_voice = false;
+        bool soporta_annotations = true;
+        bool soporta_editing = true;
+        bool soporta_python = true;
+        bool soporta_voice = true;
 
     }
 }

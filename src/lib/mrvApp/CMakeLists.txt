@@ -20,6 +20,11 @@ set(SOURCES
     mrvSettingsObject.cpp
 )
 
+if(APPLE)
+    list(APPEND HEADERS mrvMacOSOpen.h)
+    list(APPEND SOURCES mrvMacOSOpen.cpp)
+endif()
+
 add_library(mrvApp ${SOURCES} ${HEADERS})
 files_to_absolute_paths()
 
@@ -32,6 +37,11 @@ if (TLRENDER_NDI)
 endif()
 
 target_link_libraries(mrvApp PUBLIC ${LIBRARIES} )
+if(APPLE)
+    set_source_files_properties(
+        mrvMacOSOpen.cpp PROPERTIES COMPILE_FLAGS "-x objective-c++")
+    target_link_libraries(mrvApp PUBLIC "-framework Cocoa")
+endif()
 target_include_directories(mrvApp PUBLIC ${INCLUDES} )
 set_target_properties(mrvApp PROPERTIES FOLDER lib)
 

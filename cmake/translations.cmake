@@ -209,12 +209,9 @@ if (TLRENDER_NDI AND TLRENDER_VK AND MRV2_HDR)
     set(hdr_pot_target hdr_pot)
 endif()
 
-create_translation_for(license_helper "${PO_LIC_ABS_SOURCES}")
-
-
 add_custom_target(
     pot
-    DEPENDS ${pot_files} mrv2_pot ${hdr_pot_target} license_helper_pot
+    DEPENDS ${pot_files} mrv2_pot ${hdr_pot_target}
 )
 
 add_custom_target(
@@ -225,5 +222,5 @@ add_custom_target(
 
 add_custom_target(
     mo
-    DEPENDS ${mo_files} po mrv2_pot ${hdr_pot_target} license_helper_pot
+    DEPENDS ${mo_files} po mrv2_pot ${hdr_pot_target}
     )

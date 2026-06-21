@@ -10,8 +10,16 @@
 	<string>@INSTALL_NAME@</string>
 	<key>CFBundleIconFile</key>
 	<string>@INSTALL_NAME@.icns</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
 	<key>CFBundleShortVersionString</key>
 	<string>@mrv2_VERSION@</string>
 	<key>CFBundleVersion</key>
@@ -75,8 +83,29 @@
         </dict>
 
         <dict>
+          <key>CFBundleTypeName</key>
+          <string>Movie Files</string>
+          <key>CFBundleTypeExtensions</key>
+          <array>
+              <string>mov</string>
+              <string>qt</string>
+              <string>mp4</string>
+              <string>m4v</string>
+              <string>avi</string>
+              <string>mpg</string>
+              <string>mpeg</string>
+          </array>
+          <key>CFBundleTypeMIMETypes</key>
+          <array>
+              <string>video/quicktime</string>
+              <string>video/mp4</string>
+              <string>video/x-msvideo</string>
+              <string>video/mpeg</string>
+          </array>
           <key>CFBundleTypeRole</key>
           <string>Viewer</string>
+          <key>LSHandlerRank</key>
+          <string>Default</string>
             <key>LSItemContentTypes</key>
             <array>
                 <string>public.movie</string>
@@ -86,6 +115,24 @@
                 <string>public.avi</string>
                 <string>public.mpeg</string>
             </array>
+        </dict>
+
+        <dict>
+          <key>CFBundleTypeName</key>
+          <string>QuickTime Movie Files</string>
+          <key>CFBundleTypeExtensions</key>
+          <array>
+              <string>mov</string>
+              <string>qt</string>
+          </array>
+          <key>CFBundleTypeMIMETypes</key>
+          <array>
+              <string>video/quicktime</string>
+          </array>
+          <key>CFBundleTypeRole</key>
+          <string>Viewer</string>
+          <key>LSHandlerRank</key>
+          <string>Default</string>
         </dict>
 
         <dict>

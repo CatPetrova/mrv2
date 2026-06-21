@@ -24,6 +24,9 @@ update_cacert() {
     expected=$(curl -fsSL --proto '=https' --tlsv1.2 "$hash_url" | awk '{print $1}')
     if [[ -z "$expected" ]]; then
         echo "cacert: WARNING — could not fetch upstream hash; keeping existing bundle." >&2
+        if [[ -f "$dest" ]]; then
+            return 0
+        fi
         return 1
     fi
 

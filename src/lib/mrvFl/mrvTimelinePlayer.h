@@ -184,6 +184,13 @@ namespace mrv
         //! Seek to the given time.
         void seek(const otime::RationalTime&);
 
+        //! Seek relative to the current time in seconds, coalescing repeated
+        //! requests for smoother keyboard navigation.
+        void seekRelativeSeconds(double);
+
+        //! Apply a coalesced relative seek request.
+        void applyPendingRelativeSeek();
+
         //! Time action.
         void timeAction(tl::timeline::TimeAction);
 

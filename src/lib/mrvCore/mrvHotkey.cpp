@@ -111,9 +111,11 @@ namespace mrv
     Hotkey kShapeFrameStepBack(false, false, false, true, FL_Left, "");
     Hotkey kFrameStepBack(false, false, false, false, FL_Left, "");
     Hotkey kFrameStepFPSBack(true, false, false, false, FL_Left, "");
+    Hotkey kFrameStep2SecondsBack(false, false, true, false, FL_Left, "");
     Hotkey kFrameStepFwd(false, false, false, false, FL_Right, "");
     Hotkey kShapeFrameStepFwd(false, false, false, true, FL_Right, "");
     Hotkey kFrameStepFPSFwd(true, false, false, false, FL_Right, "");
+    Hotkey kFrameStep2SecondsFwd(false, false, true, false, FL_Right, "");
     Hotkey kPlayBackHalfSpeed(false, false, false, false, 'j');
     Hotkey kPlayBack(false, false, false, false, FL_Up, "");
     Hotkey kPlayDirection(false, false, false, false, ' ');
@@ -509,9 +511,11 @@ namespace mrv
 
         HotkeyEntry(_("Frame Step Backwards"), &kFrameStepBack),
         HotkeyEntry(_("Frame Step FPS Backwards"), &kFrameStepFPSBack),
+        HotkeyEntry(_("Seek 2 Seconds Backwards"), &kFrameStep2SecondsBack),
         HotkeyEntry(_("Annotation Frame Step Forwards"), &kShapeFrameStepFwd),
         HotkeyEntry(_("Frame Step Forwards"), &kFrameStepFwd),
         HotkeyEntry(_("Frame Step FPS Forwards"), &kFrameStepFPSFwd),
+        HotkeyEntry(_("Seek 2 Seconds Forwards"), &kFrameStep2SecondsFwd),
         HotkeyEntry(_("Play Backwards"), &kPlayBack),
         HotkeyEntry(_("Play Backwards / Change Speed"), &kPlayBackHalfSpeed),
         HotkeyEntry(_("Play in Current Direction"), &kPlayDirection),

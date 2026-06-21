@@ -223,6 +223,14 @@ namespace mrv
             fs::path parent = rootdir.parent_path(); // skip executable
             rootdir = parent.parent_path();          // skip bin/ directory
 
+#ifdef __APPLE__
+            if (parent.filename() == "MacOS" &&
+                rootdir.filename() == "Contents")
+            {
+                rootdir /= "Resources";
+            }
+#endif
+
             setenv("MRV2_ROOT", rootdir.u8string().c_str(), 1);
             g_root_path = rootdir.u8string();
         }

@@ -170,57 +170,14 @@ namespace
 
     void activatePlan(const std::string& plan)
     {
-        if (plan == "Pro" || plan == "Pro+")
-        {
-            mrv::app::soporta_annotations = true;
-            mrv::app::soporta_editing = true;
-            mrv::app::soporta_layers = true;
-            mrv::app::soporta_python = true;
-            mrv::app::soporta_saving = true;
-            mrv::app::soporta_voice = true;
-        }
-        else if (plan == "Standard")
-        {
-            mrv::app::soporta_annotations = true;
-            mrv::app::soporta_editing = false;
-            mrv::app::soporta_layers = true;
-            mrv::app::soporta_python = true;
-            mrv::app::soporta_saving = true;
-            mrv::app::soporta_voice = false;
-        }
-        else if (plan == "Solo")
-        {
-            mrv::app::soporta_annotations = true;
-            mrv::app::soporta_editing = false;
-            mrv::app::soporta_layers = true;
-            mrv::app::soporta_python = false;
-            mrv::app::soporta_saving = true;
-            mrv::app::soporta_voice = false;
-        }
-        else if (plan == "Demo")
-        {
-            mrv::app::soporta_annotations = false;
-            mrv::app::soporta_editing = false;
-            mrv::app::soporta_layers = true;
-            mrv::app::soporta_python = false;
-            mrv::app::soporta_saving = true;
-            mrv::app::soporta_voice = false;
-        }
-        else
-        {
-            // Unknown license plan
-            mrv::app::soporta_annotations = false;
-            mrv::app::soporta_editing = false;
-            mrv::app::soporta_layers = true;
-            mrv::app::soporta_python = false;
-            mrv::app::soporta_saving = true;
-            mrv::app::soporta_voice = false;
-            
-            const std::string msg =
-                tl::string::Format(_("Unknown licese plan '{0}'")).arg(plan);
-            LOG_ERROR(msg);
-        }
-        std::string msg = tl::string::Format(_("License plan '{0}'")).arg(plan);
+        mrv::app::soporta_annotations = true;
+        mrv::app::soporta_editing = true;
+        mrv::app::soporta_layers = true;
+        mrv::app::soporta_python = true;
+        mrv::app::soporta_saving = true;
+        mrv::app::soporta_voice = true;
+
+        std::string msg = tl::string::Format(_("Feature plan '{0}'")).arg(plan);
         LOG_STATUS(msg);
         msg = tl::string::Format(_("Supports annotations '{0}'")).arg(mrv::app::soporta_annotations);
         LOG_INFO(msg);
@@ -747,66 +704,24 @@ namespace mrv
         
     License validate_license(std::string& expiration_date)
     {
-        License out = License::kInvalid;
-        
-        if (app::license_type == LicenseType::kDemo)
-        {
-            out = validate_node_locked(expiration_date);
-            if (out == License::kValid || out == License::kExpired)
-            {
-                app::license_type = LicenseType::kNodeLocked;
-            }
-        }
+        expiration_date.clear();
 
-        if (app::license_type != LicenseType::kNodeLocked)
-        {
-            if (app::license_type == LicenseType::kFloating)
-            {
-                if (send_heartbeat())
-                    return License::kValid;
-                else
-                    return License::kInvalid;
-            }
-            else
-            {
-                out = validate_floating(expiration_date);
-                if (out == License::kValid)
-                {
-                    app::license_type = LicenseType::kFloating;
-                }
-            }
-        }
+        app::demo_mode = false;
+        app::license_type = LicenseType::kNodeLocked;
 
-        if (out == License::kValid)
-        {
-            app::demo_mode = false;
-        }
-        else
-        {
-            app::demo_mode = true;
-        }
+        app::soporta_annotations = true;
+        app::soporta_editing = true;
+        app::soporta_layers = true;
+        app::soporta_python = true;
+        app::soporta_saving = true;
+        app::soporta_voice = true;
 
-        if (app::license_type != LicenseType::kDemo)
-        {
-            /* xgettext:c++-format */
-            std::string msg =
-                string::Format(_("Your {0} license will expire on {1}."))
-                .arg(app::license_type)
-                .arg(expiration_date);
-            LOG_STATUS(msg);
-        }
-        
-        return out;
+        LOG_STATUS(_("All product features are enabled."));
+        return License::kValid;
     }
 
     License license_beat()
     {
-        if (app::force_demo)
-        {
-            app::demo_mode = false;
-            return License::kInvalid;
-        }
-        
         std::string expiration;
         License ok = validate_license(expiration);
         return ok;

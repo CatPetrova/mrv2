@@ -1,0 +1,76 @@
+diff --git a/src/Fl_cocoa.mm b/src/Fl_cocoa.mm
+index a5ccbd080..1aa410f9a 100644
+--- a/src/Fl_cocoa.mm
++++ b/src/Fl_cocoa.mm
+@@ -122,6 +122,7 @@ static NSString *fl_filenames_pboard_type =
+ static bool in_nsapp_run = false; // true during execution of [NSApp run]
+ static NSMutableArray *dropped_files_list = nil; // list of files dropped at app launch
+ typedef void (*open_cb_f_type)(const char *);
++static open_cb_f_type pending_open_cb = NULL;
+ static Fl_Window *starting_moved_window = NULL; // the moved window which brings its subwins with it
+ 
+ enum { FLTKBreakLoopEvent = 1, FLTKDataReadyEvent };
+@@ -1468,6 +1469,8 @@ static FLWindowDelegate *flwindowdelegate_instance = nil;
+ - (void)applicationWillHide:(NSNotification *)notify;
+ - (void)applicationWillUnhide:(NSNotification *)notify;
+ - (BOOL)application:(NSApplication *)theApplication openFile:(NSString *)filename;
++- (void)application:(NSApplication *)sender openFiles:(NSArray<NSString *> *)filenames;
++- (void)application:(NSApplication *)application openURLs:(NSArray<NSURL *> *)urls;
+ @end
+ 
+ @implementation FLAppDelegate
+@@ -1639,8 +1642,12 @@ static void attempt_close_all_windows() {
+     Fl_Window *firstw = Fl::first_window();
+     if (firstw) firstw->wait_for_expose();
+   } else if (in_nsapp_run) { // memorize all dropped filenames
+-    if (!dropped_files_list) dropped_files_list = [[NSMutableArray alloc] initWithCapacity:1];
+-    [dropped_files_list addObject:filename];
++    if (open_cb) {
++      (*open_cb)([filename UTF8String]);
++    } else {
++      if (!dropped_files_list) dropped_files_list = [[NSMutableArray alloc] initWithCapacity:1];
++      [dropped_files_list addObject:filename];
++    }
+     return YES;
+   }
+   if (open_cb) {
+@@ -1652,6 +1659,20 @@ static void attempt_close_all_windows() {
+   }
+   return NO;
+ }
++- (void)application:(NSApplication *)application openURLs:(NSArray<NSURL *> *)urls
++{
++  for (NSURL *url in urls) {
++    if (![url isFileURL]) continue;
++    NSString *filename = [url path];
++    [self application:application openFile:filename];
++  }
++}
++- (void)application:(NSApplication *)sender openFiles:(NSArray<NSString *> *)filenames
++{
++  for (NSString *filename in filenames) {
++    [self application:sender openFile:filename];
++  }
++}
+ @end
+ 
+ 
+@@ -1678,6 +1699,7 @@ static void drain_dropped_files_list() {
+  * Install an open documents event handler...
+  */
+ void Fl_Darwin_System_Driver::open_callback(void (*cb)(const char *)) {
++  pending_open_cb = cb;
+   fl_open_display();
+   ((FLAppDelegate*)[NSApp delegate])->open_cb = cb;
+ }
+@@ -1766,8 +1788,9 @@ void Fl_Cocoa_Screen_Driver::open_display_platform() {
+     localPool = [[NSAutoreleasePool alloc] init]; // never released
+     FLAppDelegate *delegate = [FLAppDelegate alloc];
+     [(NSApplication*)NSApp setDelegate:[delegate init]];
++    ((FLAppDelegate*)[NSApp delegate])->open_cb = pending_open_cb;
+     if (need_new_nsapp) {
+-      if (fl_mac_os_version >= 101300 && fl_mac_os_version < 140000 && is_bundled()) {
++      if (fl_mac_os_version >= 101300 && is_bundled()) {
+         [NSApp activateIgnoringOtherApps:YES];
+         in_nsapp_run = true;
+         [NSApp run];

@@ -211,6 +211,8 @@ namespace mrv
     
     void next_second_cb(Fl_Menu_*, ViewerUI* ui);
     void previous_second_cb(Fl_Menu_*, ViewerUI* ui);
+    void next_two_seconds_cb(Fl_Menu_*, ViewerUI* ui);
+    void previous_two_seconds_cb(Fl_Menu_*, ViewerUI* ui);
 
     void next_annotation_cb(Fl_Menu_*, ViewerUI* ui);
     void previous_annotation_cb(Fl_Menu_*, ViewerUI* ui);
@@ -286,9 +288,6 @@ namespace mrv
     void next_image_version_cb(Fl_Menu_*, ViewerUI* ui);
     void last_image_version_cb(Fl_Menu_*, ViewerUI* ui);
 
-    //! Unlock features
-    void unlock_features_cb(Fl_Menu_*, ViewerUI* ui);
-    
     //! Call the browser with documentation.
     void help_documentation_cb(Fl_Menu_*, ViewerUI* ui);
 
