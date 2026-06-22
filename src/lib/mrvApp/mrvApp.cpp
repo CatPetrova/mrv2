@@ -644,6 +644,8 @@ namespace mrv
         Fl_Mac_App_Menu::show = _("Show All");
         Fl_Mac_App_Menu::quit = _("Quit mrv2");
         fl_open_display();
+        fl_open_callback(osx_open_cb);
+        installMacOSOpenDocumentHandler(osx_open_cb);
 #endif
         ui->uiView->setContext(context);
 
