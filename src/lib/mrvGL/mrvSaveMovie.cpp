@@ -51,12 +51,14 @@ namespace
 
 namespace mrv
 {
-    void waitForFrame(
+    bool waitForFrame(
         const mrv::TimelinePlayer* player, const otime::RationalTime& startTime)
     {
         using namespace tl;
 
         bool found = false;
+        const auto start = std::chrono::steady_clock::now();
+        const auto timeout = std::chrono::seconds(10);
 
         auto cacheInfoObserver =
             observer::ValueObserver<timeline::PlayerCacheInfo>::create(
@@ -76,8 +78,12 @@ namespace mrv
 
         while (!found)
         {
-            Fl::check();
+            Fl::wait(0.01);
+            if (std::chrono::steady_clock::now() - start > timeout)
+                break;
         }
+
+        return found;
     }
 
     void

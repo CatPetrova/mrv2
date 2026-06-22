@@ -681,91 +681,128 @@ namespace mrv
                 return;
             }
 
-            SaveMovieOptionsUI saveOptions(hasAudio, audioOnly);
-            if (saveOptions.cancel)
-                return;
-
-            options.annotations =
-                static_cast<bool>(saveOptions.Annotations->value());
-            options.resolution =
-                static_cast<SaveResolution>(saveOptions.Resolution->value());
-
-            int value;
-            value = saveOptions.Profile->value();
-
-            const Fl_Menu_Item* item = &saveOptions.Profile->menu()[value];
-
-            // We need to iterate through all the profiles, as some profiles
-            // may be hidden from the UI due to FFmpeg being compiled as
-            // LGPL.
-            int index = 0;
-            auto entries = tl::ffmpeg::getProfileLabels();
-            for (auto entry : entries)
+            try
             {
-                if (entry == item->label())
+                SaveMovieOptionsUI saveOptions(hasAudio, audioOnly);
+                if (saveOptions.cancel)
+                    return;
+
+                options.annotations =
+                    static_cast<bool>(saveOptions.Annotations->value());
+                options.resolution =
+                    static_cast<SaveResolution>(saveOptions.Resolution->value());
+
+                int value;
+                value = saveOptions.Profile->value();
+                if (value < 0)
                 {
-                    options.ffmpegProfile =
-                        static_cast<tl::ffmpeg::Profile>(index);
+                    LOG_ERROR(_("No FFmpeg profile selected."));
+                    return;
                 }
-                ++index;
-            }
 
-            std::string preset;
-            value = saveOptions.Preset->value();
-            if (value >= 0)
-            {
-                const Fl_Menu_Item* item = &saveOptions.Preset->menu()[value];
-                if (item->label())
+                const Fl_Menu_Item* item = &saveOptions.Profile->menu()[value];
+                if (!item || !item->label())
                 {
-                    auto entries = tl::ffmpeg::getProfileLabels();
-                    std::string profileName =
-                        entries[(int)options.ffmpegProfile];
-                    preset = tl::string::toLower(profileName) + "-" +
-                             item->label() + ".pst";
-                    options.ffmpegPreset = presetspath() + preset;
-                    if (!file::isReadable(options.ffmpegPreset))
+                    LOG_ERROR(_("No FFmpeg profile selected."));
+                    return;
+                }
+
+                // We need to iterate through all the profiles, as some profiles
+                // may be hidden from the UI due to FFmpeg being compiled as
+                // LGPL.
+                int index = 0;
+                auto entries = tl::ffmpeg::getProfileLabels();
+                for (auto entry : entries)
+                {
+                    if (entry == item->label())
                     {
-                        options.ffmpegPreset = "";
+                        options.ffmpegProfile =
+                            static_cast<tl::ffmpeg::Profile>(index);
+                    }
+                    ++index;
+                }
+
+                std::string preset;
+                value = saveOptions.Preset->value();
+                if (value >= 0)
+                {
+                    const Fl_Menu_Item* item = &saveOptions.Preset->menu()[value];
+                    if (item->label())
+                    {
+                        auto entries = tl::ffmpeg::getProfileLabels();
+                        std::string profileName =
+                            entries[(int)options.ffmpegProfile];
+                        preset = tl::string::toLower(profileName) + "-" +
+                                 item->label() + ".pst";
+                        options.ffmpegPreset = presetspath() + preset;
+                        if (!file::isReadable(options.ffmpegPreset))
+                        {
+                            options.ffmpegPreset = "";
+                        }
                     }
                 }
-            }
 
-            std::string pixelFormat;
-            value = saveOptions.PixelFormat->value();
-            if (value >= 0)
-            {
-                const Fl_Menu_Item* item =
-                    &saveOptions.PixelFormat->menu()[value];
-                if (item->label())
+                std::string pixelFormat;
+                value = saveOptions.PixelFormat->value();
+                if (value >= 0)
                 {
-                    options.ffmpegPixelFormat = item->label();
+                    const Fl_Menu_Item* item =
+                        &saveOptions.PixelFormat->menu()[value];
+                    if (item->label())
+                    {
+                        options.ffmpegPixelFormat = item->label();
+                    }
+                }
+                value = saveOptions.AudioCodec->value();
+                if (value >= 0)
+                {
+                    options.ffmpegAudioCodec =
+                        static_cast<tl::ffmpeg::AudioCodec>(value);
+                }
+                else
+                {
+                    options.ffmpegAudioCodec = tl::ffmpeg::AudioCodec::kNone;
+                }
+
+                options.ffmpegHardwareEncode = saveOptions.Hardware->value();
+                options.ffmpegOverride = saveOptions.Override->value();
+                if (options.ffmpegOverride)
+                {
+                    const Fl_Menu_Item* item;
+
+                    value = saveOptions.ColorRange->value();
+                    item = value >= 0
+                               ? &saveOptions.ColorRange->menu()[value]
+                               : nullptr;
+                    if (item && item->label())
+                        options.ffmpegColorRange = item->label();
+
+                    value = saveOptions.ColorSpace->value();
+                    item = value >= 0
+                               ? &saveOptions.ColorSpace->menu()[value]
+                               : nullptr;
+                    if (item && item->label())
+                        options.ffmpegColorSpace = item->label();
+
+                    value = saveOptions.ColorPrimaries->value();
+                    item = value >= 0
+                               ? &saveOptions.ColorPrimaries->menu()[value]
+                               : nullptr;
+                    if (item && item->label())
+                        options.ffmpegColorPrimaries = item->label();
+
+                    value = saveOptions.ColorTRC->value();
+                    item = value >= 0
+                               ? &saveOptions.ColorTRC->menu()[value]
+                               : nullptr;
+                    if (item && item->label())
+                        options.ffmpegColorTRC = item->label();
                 }
             }
-            value = saveOptions.AudioCodec->value();
-            options.ffmpegAudioCodec =
-                static_cast<tl::ffmpeg::AudioCodec>(value);
-
-            options.ffmpegHardwareEncode = saveOptions.Hardware->value();
-            options.ffmpegOverride = saveOptions.Override->value();
-            if (options.ffmpegOverride)
+            catch (const std::exception& e)
             {
-                const Fl_Menu_Item* item;
-
-                item = &saveOptions.ColorRange
-                            ->menu()[saveOptions.ColorRange->value()];
-                options.ffmpegColorRange = item->label();
-
-                item = &saveOptions.ColorSpace
-                            ->menu()[saveOptions.ColorSpace->value()];
-                options.ffmpegColorSpace = item->label();
-
-                item = &saveOptions.ColorPrimaries
-                            ->menu()[saveOptions.ColorPrimaries->value()];
-                options.ffmpegColorPrimaries = item->label();
-
-                item = &saveOptions.ColorTRC
-                            ->menu()[saveOptions.ColorTRC->value()];
-                options.ffmpegColorTRC = item->label();
+                LOG_ERROR(e.what());
+                return;
             }
         }
         else

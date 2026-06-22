@@ -802,7 +802,10 @@ if (v->size() > 0)
     }
   }
   Function {add_presets(Fl_Choice* o, Fl_Choice* v)} {} {
-    code {const Fl_Menu_Item* item = &o->menu()[o->value()];
+    code {if (!o || !v || o->value() < 0)
+   return;
+
+const Fl_Menu_Item* item = o->mvalue();
 if (!item || !item->label()) return;
 
 std::string codec = tl::string::toLower(item->label());
@@ -812,6 +815,12 @@ std::string directoryPath = mrv::presetspath();
 
 // Open the directory
 v->clear();
+if (!fs::is_directory(directoryPath))
+{
+  v->deactivate();
+  return;
+}
+
 fs::directory_iterator dirIter(directoryPath);
 for (const auto& entry : dirIter)
 {

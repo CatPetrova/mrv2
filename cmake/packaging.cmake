@@ -155,6 +155,12 @@ if(APPLE)
             file(COPY \"\${_exe}\" DESTINATION \"\${_app}/MacOS\")
             execute_process(COMMAND chmod 755 \"\${_app}/MacOS/${mrv2_NAME}\")
         endif()
+        foreach(_resource certs colors ocio presets)
+            if(EXISTS \"\${CMAKE_INSTALL_PREFIX}/\${_resource}\")
+                file(COPY \"\${CMAKE_INSTALL_PREFIX}/\${_resource}\"
+                    DESTINATION \"\${_app}/Resources\")
+            endif()
+        endforeach()
         if(EXISTS \"\${_app}/Resources/lib\" AND NOT EXISTS \"\${_app}/lib\")
             execute_process(
                 COMMAND \${CMAKE_COMMAND} -E create_symlink
