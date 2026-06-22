@@ -271,6 +271,7 @@ namespace mrv
     bool App::unsaved_edits = false;
 
     std::vector<std::string > OSXfiles;
+
     void osx_open_cb(const char* filename)
     {
         if (!filename || !filename[0])
@@ -328,8 +329,8 @@ namespace mrv
 #ifdef __APPLE__
         // Register before any FLTK/AppKit initialization so launch-time
         // documents are cached instead of being dropped by macOS.
-        fl_open_callback(osx_open_cb);
         installMacOSOpenDocumentHandler(osx_open_cb);
+        fl_open_callback(osx_open_cb);
 #endif
 
         // Establish MRV2_ROOT environment variable
@@ -644,8 +645,8 @@ namespace mrv
         Fl_Mac_App_Menu::show = _("Show All");
         Fl_Mac_App_Menu::quit = _("Quit mrv2");
         fl_open_display();
-        fl_open_callback(osx_open_cb);
         installMacOSOpenDocumentHandler(osx_open_cb);
+        fl_open_callback(osx_open_cb);
 #endif
         ui->uiView->setContext(context);
 

@@ -17,8 +17,32 @@ namespace
     {
         if (!gOpenCallback || !path)
             return;
-
         gOpenCallback([path fileSystemRepresentation]);
+    }
+
+    NSString* pathFromAppleEventDescriptor(NSAppleEventDescriptor* item)
+    {
+        if (!item)
+            return nil;
+
+        NSURL* url = [item fileURLValue];
+        if (url)
+            return [url path];
+
+        NSAppleEventDescriptor* fileURL =
+            [item coerceToDescriptorType:typeFileURL];
+        if (fileURL)
+        {
+            url = [fileURL fileURLValue];
+            if (url)
+                return [url path];
+
+            NSString* urlString = [fileURL stringValue];
+            if (urlString)
+                return [[NSURL URLWithString:urlString] path];
+        }
+
+        return [item stringValue];
     }
 
     BOOL mrvApplicationOpenFile(
@@ -42,6 +66,20 @@ namespace
             openPath(filename);
 
         [application replyToOpenOrPrint:NSApplicationDelegateReplySuccess];
+    }
+
+    void mrvApplicationOpenURLs(
+        id self, SEL _cmd, NSApplication* application, NSArray* urls)
+    {
+        (void)self;
+        (void)_cmd;
+        (void)application;
+
+        for (NSURL* url in urls)
+        {
+            if ([url isFileURL])
+                openPath([url path]);
+        }
     }
 
     void installDelegateOpenHandlers()
@@ -73,6 +111,10 @@ namespace
             delegateClass, @selector(application:openFiles:),
             (IMP)mrvApplicationOpenFiles, "v@:@@");
 
+        class_addMethod(
+            delegateClass, @selector(application:openURLs:),
+            (IMP)mrvApplicationOpenURLs, "v@:@@");
+
         gSwizzledDelegateClass = delegateClass;
     }
 }
@@ -94,29 +136,24 @@ namespace
     if (!directObject)
         return;
 
-    for (NSInteger i = 1; i <= [directObject numberOfItems]; ++i)
+    NSInteger count = [directObject numberOfItems];
+    if (count <= 0)
+    {
+        NSString* path = pathFromAppleEventDescriptor(directObject);
+        if (path)
+            openPath(path);
+        return;
+    }
+
+    for (NSInteger i = 1; i <= count; ++i)
     {
         NSAppleEventDescriptor* item = [directObject descriptorAtIndex:i];
         if (!item)
             continue;
 
-        NSString* path = nil;
-        NSAppleEventDescriptor* fileURL =
-            [item coerceToDescriptorType:typeFileURL];
-        if (fileURL)
-        {
-            NSString* urlString = [fileURL stringValue];
-            if (urlString)
-            {
-                NSURL* url = [NSURL URLWithString:urlString];
-                path = [url path];
-            }
-        }
-
-        if (!path)
-            path = [item stringValue];
-
-        openPath(path);
+        NSString* path = pathFromAppleEventDescriptor(item);
+        if (path)
+            openPath(path);
     }
 }
 
