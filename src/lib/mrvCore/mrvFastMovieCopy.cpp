@@ -192,8 +192,8 @@ namespace mrv
                 string::Format("{0}: Cannot allocate packet.").arg(outputFile));
         }
 
-        std::vector<int64_t> firstPts(input.ctx->nb_streams, AV_NOPTS_VALUE);
-        std::vector<int64_t> firstDts(input.ctx->nb_streams, AV_NOPTS_VALUE);
+        std::vector<int64_t> timestampOffset(
+            input.ctx->nb_streams, AV_NOPTS_VALUE);
 
         while ((r = av_read_frame(input.ctx, packet.p)) >= 0)
         {
@@ -215,26 +215,18 @@ namespace mrv
             AVStream* outStream =
                 output.ctx->streams[streamMap[inStreamIndex]];
 
-            if (firstPts[inStreamIndex] == AV_NOPTS_VALUE &&
-                packet.p->pts != AV_NOPTS_VALUE)
+            if (timestampOffset[inStreamIndex] == AV_NOPTS_VALUE)
             {
-                firstPts[inStreamIndex] = packet.p->pts;
+                timestampOffset[inStreamIndex] =
+                    packet.p->dts != AV_NOPTS_VALUE ? packet.p->dts
+                                                     : packet.p->pts;
             }
-            if (firstDts[inStreamIndex] == AV_NOPTS_VALUE &&
-                packet.p->dts != AV_NOPTS_VALUE)
+            if (timestampOffset[inStreamIndex] != AV_NOPTS_VALUE)
             {
-                firstDts[inStreamIndex] = packet.p->dts;
-            }
-
-            if (packet.p->pts != AV_NOPTS_VALUE &&
-                firstPts[inStreamIndex] != AV_NOPTS_VALUE)
-            {
-                packet.p->pts -= firstPts[inStreamIndex];
-            }
-            if (packet.p->dts != AV_NOPTS_VALUE &&
-                firstDts[inStreamIndex] != AV_NOPTS_VALUE)
-            {
-                packet.p->dts -= firstDts[inStreamIndex];
+                if (packet.p->pts != AV_NOPTS_VALUE)
+                    packet.p->pts -= timestampOffset[inStreamIndex];
+                if (packet.p->dts != AV_NOPTS_VALUE)
+                    packet.p->dts -= timestampOffset[inStreamIndex];
             }
 
             av_packet_rescale_ts(
