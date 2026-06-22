@@ -8,6 +8,7 @@ set(HEADERS
     mrvColor.h
     mrvColorAreaInfo.h
     mrvColorSpaces.h
+    mrvFastMovieCopy.h
     mrvFile.h
     mrvFonts.h
     mrvGPU.h
@@ -27,6 +28,7 @@ set(HEADERS
 set(SOURCES
     mrvColor.cpp
     mrvColorSpaces.cpp
+    mrvFastMovieCopy.cpp
     mrvFile.cpp
     mrvFonts.cpp
     mrvGPU.cpp

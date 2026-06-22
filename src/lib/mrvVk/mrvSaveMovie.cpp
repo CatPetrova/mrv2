@@ -20,6 +20,7 @@
 
 #include "mrvImage/mrvOperations.h"
 
+#include "mrvCore/mrvFastMovieCopy.h"
 #include "mrvCore/mrvLocale.h"
 #include "mrvCore/mrvMath.h"
 #include "mrvCore/mrvUtil.h"
@@ -39,6 +40,7 @@
 #include <FL/Fl.H>
 
 #include <chrono>
+#include <cstdio>
 #include <string>
 #include <sstream>
 
@@ -257,6 +259,41 @@ namespace mrv
                 msg = string::Format(_("Saving pictures to {0}.")).arg(newFile);
             }
             LOG_STATUS(msg);
+
+            if (savingMovie && options.saveVideo && options.video &&
+                !options.annotations &&
+                options.resolution == SaveResolution::kSameSize)
+            {
+                const std::string inputExtension =
+                    string::toLower(file::Path(inputFile).getExtension());
+                if (file::isMovie(inputExtension) && inputFile != newFile)
+                {
+                    try
+                    {
+                        LOG_STATUS(
+                            _("Trying fast movie copy without re-encoding."));
+                        fast_movie_copy(
+                            inputFile, newFile, startTime,
+                            timeRange.end_time_exclusive());
+                        LOG_STATUS(
+                            _("Fast movie copy finished.  The cut is "
+                              "keyframe-aligned."));
+                        cache->setMax(oldCacheSize);
+                        player->seek(currentTime);
+                        player->setMute(mute);
+                        return;
+                    }
+                    catch (const std::exception& e)
+                    {
+                        msg = string::Format(
+                                  _("Fast movie copy failed, falling back to "
+                                    "rendered export: {0}"))
+                                  .arg(e.what());
+                        LOG_WARNING(msg);
+                        std::remove(newFile.c_str());
+                    }
+                }
+            }
 
             // Render information.
             const auto& info = player->ioInfo();
