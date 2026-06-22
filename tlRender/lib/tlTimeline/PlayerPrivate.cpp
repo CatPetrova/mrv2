@@ -268,6 +268,13 @@ namespace tl
                         videoData.time = time;
                         videoDataCache.push_back(videoData);
                     }
+                    // The seek-priority frame has been decoded; stop
+                    // prioritizing it. See docs/SEEK_PERFORMANCE.md (B-3/C-2).
+                    if (thread.seekTime && *thread.seekTime == time)
+                    {
+                        std::unique_lock<std::mutex> lock(mutex.mutex);
+                        mutex.seekTime.reset();
+                    }
                     videoDataRequestsIt =
                         thread.videoDataRequests.erase(videoDataRequestsIt);
                 }
@@ -448,6 +455,35 @@ namespace tl
             // Get uncached video.
             if (!ioInfo.video.empty())
             {
+                // Prioritize the seek target frame: queue its decode request
+                // ahead of the surrounding cache window so the IO thread pool
+                // picks it up first and the frame is displayed ASAP after a
+                // seek, instead of waiting for the whole readAhead/Behind
+                // window to fill. forwardRequests() skips already-cached or
+                // already-requested frames, so this is a no-op if the target
+                // is already available. See docs/SEEK_PERFORMANCE.md (B-3/C-2).
+                if (thread.seekTime)
+                {
+                    const otime::RationalTime& target = *thread.seekTime;
+                    const bool cached =
+                        thread.videoDataCache.find(target) !=
+                        thread.videoDataCache.end();
+                    if (timeRange.contains(target) && !cached)
+                    {
+                        const otime::RationalTime inc(
+                            1.0, timeRange.duration().rate());
+                        forwardRequests(target, target, inc, true);
+                    }
+                    else
+                    {
+                        // Target already cached or out of range: clear the
+                        // priority flag so it does not linger. See
+                        // docs/SEEK_PERFORMANCE.md (B-3/C-2).
+                        std::unique_lock<std::mutex> lock(mutex.mutex);
+                        mutex.seekTime.reset();
+                    }
+                }
+
                 for (const auto& range : videoRanges)
                 {
                     switch (thread.cacheDirection)

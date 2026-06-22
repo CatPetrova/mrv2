@@ -17,6 +17,7 @@
 
 #include <atomic>
 #include <mutex>
+#include <optional>
 #include <thread>
 
 namespace tl
@@ -103,6 +104,12 @@ namespace tl
                 CacheDirection cacheDirection = CacheDirection::Forward;
                 PlayerCacheOptions cacheOptions;
                 PlayerCacheInfo cacheInfo;
+                //! When set, the next cacheUpdate() queues a decode request for
+                //! this single frame ahead of the surrounding cache window, so
+                //! a seek's target frame is decoded and displayed first instead
+                //! of waiting for the whole readAhead/Behind window to fill.
+                //! See docs/SEEK_PERFORMANCE.md (B-3/C-2).
+                std::optional<otime::RationalTime> seekTime;
                 std::mutex mutex;
             };
             Mutex mutex;
@@ -133,6 +140,11 @@ namespace tl
                 double audioOffset = 0.0;
                 CacheDirection cacheDirection = CacheDirection::Forward;
                 PlayerCacheOptions cacheOptions;
+
+                //! Seek target frame to decode with priority. Copied from
+                //! mutex.seekTime each tick. Cleared once the frame is cached.
+                //! See docs/SEEK_PERFORMANCE.md (B-3/C-2).
+                std::optional<otime::RationalTime> seekTime;
 
                 std::map<otime::RationalTime, std::vector<VideoRequest> >
                     videoDataRequests;

@@ -282,6 +282,11 @@ namespace tl
                             p.mutex.clearCache = false;
                             p.thread.cacheDirection = p.mutex.cacheDirection;
                             p.thread.cacheOptions = p.mutex.cacheOptions;
+                            // Mirror the seek-priority frame. Clear the mutex
+                            // copy once the target frame has been decoded into
+                            // the cache so subsequent ticks stop prioritizing
+                            // it. See docs/SEEK_PERFORMANCE.md (B-3/C-2).
+                            p.thread.seekTime = p.mutex.seekTime;
                         }
 
                         // Clear requests.
@@ -665,6 +670,11 @@ namespace tl
                     std::unique_lock<std::mutex> lock(p.mutex.mutex);
                     p.mutex.currentTime = tmp;
                     p.mutex.clearRequests = true;
+                    // Prioritize decoding the seek target frame first so it is
+                    // shown as soon as possible, instead of waiting for the
+                    // surrounding cache window to fill. See
+                    // docs/SEEK_PERFORMANCE.md (B-3/C-2).
+                    p.mutex.seekTime = tmp;
                 }
                 p.resetAudioTime();
             }

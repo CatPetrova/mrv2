@@ -120,8 +120,13 @@
          p.defaultValues["Cache/GBytes"] = static_cast<int>(totalPhysMem / 2);
          p.defaultValues["Cache/ReadAhead"] =
              timeline::PlayerCacheOptions().readAhead.value();
-         p.defaultValues["Cache/ReadBehind"] =
-             timeline::PlayerCacheOptions().readBehind.value();
+         // Default readBehind is 0.5s in tlRender, which is too small for the
+         // Alt+Left "seek 2 seconds backward" shortcut to ever hit the cache
+         // (the target frame is always 2.0s > 0.5s behind). Raise it to 2.0s
+         // so a 2-second backward seek lands inside the cached window and
+         // avoids an expensive FFmpeg GOP re-decode. See
+         // docs/SEEK_PERFORMANCE.md (bottleneck 2 / change A-1).
+         p.defaultValues["Cache/ReadBehind"] = 2.0;
          p.defaultValues["FileSequence/Audio"] =
              static_cast<int>(timeline::FileSequenceAudio::BaseName);
          p.defaultValues["FileSequence/AudioFileName"] = std::string();

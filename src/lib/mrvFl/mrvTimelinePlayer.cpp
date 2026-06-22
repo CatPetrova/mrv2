@@ -80,6 +80,13 @@ namespace mrv
         //! 1/rate of time to play audio while stepping back/fwd.
         bool isStepping = false;
 
+        //! Set to true on seek() and cleared when fresh video data for the new
+        //! time arrives. While true the viewport draws a "seeking" indicator so
+        //! the user sees the seek was acknowledged even when the target frame
+        //! is not yet decoded (cache miss). See docs/SEEK_PERFORMANCE.md
+        //! (bottleneck 1 / change C-1).
+        bool seekPending = false;
+
         //! Measuring timer
 #ifdef DEBUG_SPEED
         std::chrono::time_point<std::chrono::high_resolution_clock> start_time;
@@ -371,9 +378,34 @@ namespace mrv
     void TimelinePlayer::seek(const otime::RationalTime& value)
     {
         pushMessage("seek", value);
+        // Only mark a seek pending if the time actually changes; otherwise the
+        // video data observer will never fire (no change) and the seeking
+        // indicator would get stuck on. See docs/SEEK_PERFORMANCE.md (C-1).
+        const bool timeChanged = (value != currentTime());
         _p->player->seek(value);
-        if (timelineViewport)
+        if (timeChanged)
+        {
+            _p->seekPending = true;
+            if (timelineViewport)
+            {
+                timelineViewport->updateUndoRedoButtons();
+                timelineViewport->refreshWindows();
+            }
+        }
+        else if (timelineViewport)
+        {
             timelineViewport->updateUndoRedoButtons();
+        }
+    }
+
+    bool TimelinePlayer::isSeekPending() const noexcept
+    {
+        return _p->seekPending;
+    }
+
+    void TimelinePlayer::clearSeekPending() noexcept
+    {
+        _p->seekPending = false;
     }
 
     void TimelinePlayer::timeAction(timeline::TimeAction value)

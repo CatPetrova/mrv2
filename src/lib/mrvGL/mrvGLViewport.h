@@ -121,6 +121,10 @@ namespace mrv
 
             void _drawHelpText() const noexcept;
 
+            //! Draw a "seeking" indicator while a seek's target frame is being
+            //! decoded (cache miss). See docs/SEEK_PERFORMANCE.md (C-1).
+            void _drawSeeking() const noexcept;
+
             void _drawRectangleOutline(
                 const math::Box2i& box, const image::Color4f& color,
                 const math::Matrix4x4f& mvp) const noexcept;

@@ -1082,6 +1082,54 @@ namespace mrv
             TLRENDER_P();
             MRV2_VK();
             vk.render->drawMask(p.masking);
+            // Seek feedback: show a transient indicator while the target frame
+            // of a seek is being decoded (cache miss). See
+            // docs/SEEK_PERFORMANCE.md (C-1).
+            _drawSeeking();
+        }
+
+        void Viewport::_drawSeeking() const noexcept
+        {
+            TLRENDER_P();
+            if (!p.player || !p.player->isSeekPending())
+                return;
+            if (!p.fontSystem)
+                return;
+
+            MRV2_VK();
+
+            Viewport* self = const_cast< Viewport* >(this);
+            const auto& viewportSize = getViewportSize();
+            const uint16_t fontSize = 16 * self->pixels_per_unit();
+            const image::FontInfo fontInfo(kFontFamily, fontSize);
+            const image::FontMetrics fontMetrics =
+                p.fontSystem->getMetrics(fontInfo);
+
+            static const std::string text = _("Seeking…");
+            const math::Size2i textSize = p.fontSystem->getSize(text, fontInfo);
+            const int margin = fontMetrics.lineHeight / 2;
+
+            const math::Box2i box(
+                margin,
+                viewportSize.h - fontMetrics.lineHeight - margin,
+                textSize.w + margin * 2,
+                fontMetrics.lineHeight);
+
+            const math::Vector2i pos(
+                box.min.x + margin,
+                box.min.y + fontMetrics.ascender);
+
+            timeline::RenderOptions renderOptions;
+            renderOptions.clear = false;
+            vk.render->begin(viewportSize, renderOptions);
+            vk.render->setOCIOOptions(timeline::OCIOOptions());
+            vk.render->setLUTOptions(timeline::LUTOptions());
+            vk.render->drawRect(box, image::Color4f(0.F, 0.F, 0.F, 0.7F));
+
+            std::vector<timeline::TextInfo> textInfos;
+            _appendText(textInfos, text, fontInfo, pos, fontMetrics.lineHeight);
+            _drawText(textInfos, math::Vector2i(), image::Color4f(1.F, 1.F, 1.F, 1.F));
+            vk.render->end();
         }
 
         void Viewport::_drawHelpText() const noexcept

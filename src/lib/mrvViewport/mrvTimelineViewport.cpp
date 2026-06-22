@@ -1368,6 +1368,12 @@ namespace mrv
 
             p.videoData = values;
 
+            // Fresh video data arrived for the current time, so a pending seek
+            // has been satisfied. Clear the seeking indicator. See
+            // docs/SEEK_PERFORMANCE.md (C-1).
+            if (p.player && p.player->isSeekPending())
+                p.player->clearSeekPending();
+
             // Check to see if we keep area selection.
             if (p.selection.min.x >= 0)
             {

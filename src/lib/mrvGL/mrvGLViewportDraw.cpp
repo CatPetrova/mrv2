@@ -1336,6 +1336,56 @@ namespace mrv
             TLRENDER_P();
             if (p.masking > 0.0001F)
                 _drawCropMask(renderSize);
+            // Seek feedback: show a transient indicator while the target frame
+            // of a seek is being decoded (cache miss). See
+            // docs/SEEK_PERFORMANCE.md (C-1).
+            _drawSeeking();
+        }
+
+        void Viewport::_drawSeeking() const noexcept
+        {
+            TLRENDER_P();
+            if (!p.player || !p.player->isSeekPending())
+                return;
+            if (!p.fontSystem)
+                return;
+
+            MRV2_GL();
+
+            Viewport* self = const_cast< Viewport* >(this);
+            const auto& viewportSize = getViewportSize();
+            const uint16_t fontSize = 16 * self->pixels_per_unit();
+            const image::FontInfo fontInfo(kFontFamily, fontSize);
+            const image::FontMetrics fontMetrics =
+                p.fontSystem->getMetrics(fontInfo);
+
+            static const std::string text = _("Seeking…");
+            const math::Size2i textSize = p.fontSystem->getSize(text, fontInfo);
+            const int margin = fontMetrics.lineHeight / 2;
+
+            const math::Box2i box(
+                margin,
+                viewportSize.h - fontMetrics.lineHeight - margin,
+                textSize.w + margin * 2,
+                fontMetrics.lineHeight);
+
+            const math::Vector2i pos(
+                box.min.x + margin,
+                box.min.y + fontMetrics.ascender);
+
+            timeline::RenderOptions renderOptions;
+            renderOptions.clear = false;
+            gl.render->begin(viewportSize, renderOptions);
+            gl.render->setOCIOOptions(timeline::OCIOOptions());
+            gl.render->setLUTOptions(timeline::LUTOptions());
+            gl.render->drawRect(box, image::Color4f(0.F, 0.F, 0.F, 0.7F));
+
+            std::vector<timeline::TextInfo> textInfos;
+            _appendText(
+                textInfos, p.fontSystem->getGlyphs(text, fontInfo), pos,
+                fontMetrics.lineHeight);
+            _drawText(textInfos, pos, image::Color4f(1.F, 1.F, 1.F, 1.F));
+            gl.render->end();
         }
 
         void Viewport::_drawHelpText() const noexcept

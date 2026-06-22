@@ -82,6 +82,15 @@ namespace mrv
         //! Are we stepping frames?
         bool isStepping() const;
 
+        //! Is a seek in progress (target frame not yet decoded)?
+        //! Used by the viewport to show feedback on cache miss.
+        //! See docs/SEEK_PERFORMANCE.md (C-1).
+        bool isSeekPending() const noexcept;
+
+        //! Clear the seek-pending state. Called by the viewport once fresh
+        //! video data for the seeked-to time has arrived.
+        void clearSeekPending() noexcept;
+
         //! Get the playback loop mode.
         timeline::Loop loop() const;
 
