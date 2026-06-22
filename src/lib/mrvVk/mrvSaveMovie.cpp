@@ -41,6 +41,7 @@
 
 #include <chrono>
 #include <cstdio>
+#include <memory>
 #include <string>
 #include <sstream>
 
@@ -272,9 +273,23 @@ namespace mrv
                     {
                         LOG_STATUS(
                             _("Trying fast movie copy without re-encoding."));
+                        std::unique_ptr<ProgressReport> fastProgress;
+                        if (view->visible_r())
+                        {
+                            fastProgress.reset(new ProgressReport(
+                                ui->uiMain, 0, 1,
+                                _("Fast copying movie without re-encoding...")));
+                            fastProgress->show();
+                            Fl::check();
+                        }
                         fast_movie_copy(
                             inputFile, newFile, startTime,
                             timeRange.end_time_exclusive());
+                        if (fastProgress)
+                        {
+                            fastProgress->set_value(1);
+                            Fl::check();
+                        }
                         LOG_STATUS(
                             _("Fast movie copy finished.  The cut is "
                               "keyframe-aligned."));
