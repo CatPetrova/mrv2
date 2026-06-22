@@ -68,7 +68,7 @@ namespace mrv
                     for (const auto& t : value.videoFrames)
                     {
                         if (startTime >= t.start_time() &&
-                            startTime <= t.end_time_exclusive())
+                            startTime < t.end_time_exclusive())
                         {
                             found = true;
                             break;
@@ -84,6 +84,16 @@ namespace mrv
         }
 
         return found;
+    }
+
+    bool ensureFrame(
+        mrv::TimelinePlayer* player, const otime::RationalTime& time)
+    {
+        if (waitForFrame(player, time))
+            return true;
+
+        player->seek(time);
+        return waitForFrame(player, time);
     }
 
     void
@@ -768,7 +778,12 @@ namespace mrv
             size_t currentSampleCount =
                 startTime.rescaled_to(sampleRate).value();
 
-            waitForFrame(player, startTime);
+            if (!ensureFrame(player, startTime))
+            {
+                throw std::runtime_error(
+                    string::Format(_("Timed out waiting for frame {0}."))
+                        .arg(startTime));
+            }
 
             int32_t frameIndex = 0;
             
@@ -1092,13 +1107,19 @@ namespace mrv
                     // movies can lag behind the seek
                     // When saving video and not options.annotations, we cannot
                     // use seek as it corrupts the timeline.
-                    if (options.annotations && hasVideo)
+                    if (hasVideo)
                         player->frameNext();
                     else if (!hasVideo)
                         player->seek(currentTime);
 
                     // We wait for the frame to arrive in cache.
-                    waitForFrame(player, currentTime);
+                    if (!ensureFrame(player, currentTime))
+                    {
+                        throw std::runtime_error(
+                            string::Format(
+                                _("Timed out waiting for frame {0}."))
+                                .arg(currentTime));
+                    }
                 }
 
 #ifdef VULKAN_BACKEND

@@ -13,7 +13,7 @@ namespace mrv
     class TimelinePlayer;
 
     //! Waits for a frame to be in the cache
-    void waitForFrame(
+    bool waitForFrame(
         const mrv::TimelinePlayer* player, const otime::RationalTime& time);
 
     //! Save single frame.  Returns 0 if successful, -1 if not.

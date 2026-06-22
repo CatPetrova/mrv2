@@ -70,7 +70,7 @@ namespace mrv
                     for (const auto& t : value.videoFrames)
                     {
                         if (startTime >= t.start_time() &&
-                            startTime <= t.end_time_exclusive())
+                            startTime < t.end_time_exclusive())
                         {
                             found = true;
                             break;
@@ -86,6 +86,16 @@ namespace mrv
         }
 
         return found;
+    }
+
+    bool ensureFrame(
+        mrv::TimelinePlayer* player, const otime::RationalTime& time)
+    {
+        if (waitForFrame(player, time))
+            return true;
+
+        player->seek(time);
+        return waitForFrame(player, time);
     }
 
     void
@@ -642,7 +652,12 @@ namespace mrv
 
             player->start();
             
-            waitForFrame(player, startTime);
+            if (!ensureFrame(player, startTime))
+            {
+                throw std::runtime_error(
+                    string::Format(_("Timed out waiting for frame {0}."))
+                        .arg(startTime));
+            }
 
             int32_t frameIndex = 0;
 
@@ -979,7 +994,13 @@ namespace mrv
                         player->seek(currentTime);
                     
                     // We wait for the frame to arrive in cache.
-                    waitForFrame(player, currentTime);
+                    if (!ensureFrame(player, currentTime))
+                    {
+                        throw std::runtime_error(
+                            string::Format(
+                                _("Timed out waiting for frame {0}."))
+                                .arg(currentTime));
+                    }
                 }
 
                 frameIndex = (frameIndex + 1) % vlk::MAX_FRAMES_IN_FLIGHT;
