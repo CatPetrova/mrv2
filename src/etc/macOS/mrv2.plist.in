@@ -133,6 +133,12 @@
           <string>Viewer</string>
           <key>LSHandlerRank</key>
           <string>Default</string>
+          <key>LSItemContentTypes</key>
+          <array>
+              <string>com.apple.quicktime-movie</string>
+              <string>public.movie</string>
+              <string>public.video</string>
+          </array>
         </dict>
 
         <dict>
