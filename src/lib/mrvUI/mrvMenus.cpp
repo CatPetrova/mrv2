@@ -2072,8 +2072,11 @@ namespace mrv
         }
 #endif
 
-        if (dynamic_cast< DummyClient* >(tcp) == nullptr ||
-            panel::webrtcPanel)
+        if (dynamic_cast< DummyClient* >(tcp) == nullptr
+#ifdef MRV2_NETWORK
+            || panel::webrtcPanel
+#endif
+            )
         {
             mode = FL_MENU_CHATTY | FL_MENU_TOGGLE;
 
