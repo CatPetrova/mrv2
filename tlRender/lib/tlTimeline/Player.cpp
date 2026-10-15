@@ -298,6 +298,15 @@ namespace tl
                             p.clearCache();
                         }
 
+                        // Prioritize the latest position before submitting more prefetch.
+                        const bool reverse = p.thread.cacheDirection == CacheDirection::Reverse;
+                        p.timeline->setRequestPriority(p.thread.currentTime, reverse);
+                        for (const auto& timeline : p.thread.compare)
+                            timeline->setRequestPriority(
+                                timeline::getCompareTime(p.thread.currentTime, p.timeline->getTimeRange(),
+                                               timeline->getTimeRange(), p.thread.compareTime),
+                                reverse);
+
                         // Update the cache.
                         p.cacheUpdate();
 
@@ -1118,11 +1127,11 @@ namespace tl
                 {
                     seconds = -seconds;
                 }
+                const auto elapsed = OTIO_NS::RationalTime(seconds, 1.0)
+                    .rescaled_to(timeRange.duration().rate());
                 const OTIO_NS::RationalTime currentTime = p.loopPlayback(
-                    playbackStartTime +
-                    OTIO_NS::RationalTime(seconds, 1.0)
-                        .rescaled_to(timeRange.duration().rate())
-                        .floor());
+                    playbackStartTime + (Playback::Reverse == playback
+                        ? elapsed.ceil() : elapsed.floor()));
                 // const double currentTimeDiff = abs(currentTime.value() -
                 // p.currentTime->get().value());
                 if (p.currentTime->setIfChanged(currentTime))

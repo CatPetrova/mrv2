@@ -9,12 +9,27 @@
 #include <tlCore/Time.h>
 
 #include <optional>
+#include <atomic>
 
 namespace tl
 {
     //! Audio and video I/O.
     namespace io
     {
+        //! Cooperative cancellation shared by a request and its decoders.
+        class CancellationToken
+        {
+        public:
+            void cancel() { _cancelled.store(true, std::memory_order_relaxed); }
+            bool isCancelled() const
+            {
+                return _cancelled.load(std::memory_order_relaxed);
+            }
+
+        private:
+            std::atomic<bool> _cancelled{false};
+        };
+
         //! File types.
         enum class FileType {
             Unknown = 0,

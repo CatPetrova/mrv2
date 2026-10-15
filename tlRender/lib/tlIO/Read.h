@@ -62,6 +62,11 @@ namespace tl
                 const OTIO_NS::RationalTime&,
                 const Options& = Options()) = 0;
 
+            //! Read with cooperative, per-request cancellation.
+            virtual std::future<VideoData> readVideo(
+                const OTIO_NS::RationalTime&, const Options&,
+                const std::shared_ptr<CancellationToken>&);
+
             //! Give the reader a cache to use for decoded frames, in place of
             //! any private one it would otherwise keep. Called at most once,
             //! before the first readVideo() request is issued. The default
@@ -80,6 +85,11 @@ namespace tl
             virtual std::future<AudioData> readAudio(
                 const OTIO_NS::TimeRange&,
                 const Options& = Options()) = 0;
+
+            //! Read with cooperative, per-request cancellation.
+            virtual std::future<AudioData> readAudio(
+                const OTIO_NS::TimeRange&, const Options&,
+                const std::shared_ptr<CancellationToken>&);
 
             //! Give the reader a cache to use for decoded frames, in place of
             //! any private one it would otherwise keep. Called at most once,

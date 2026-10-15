@@ -514,55 +514,32 @@ namespace tl
                 }
             }
 
-            // Get uncached video.
+            // Get uncached video. Ask for the current frame and the forward
+            // run before filling read-behind; otherwise every seek decodes the
+            // target, seeks back half a second, then decodes forward again.
             if (!ioInfo.video.empty())
             {
-                for (const auto& range : videoRanges)
+                const OTIO_NS::RationalTime inc(1.0, thread.currentTime.rate());
+                if (thread.cacheDirection == CacheDirection::Forward)
                 {
-                    switch (thread.cacheDirection)
+                    for (const auto& range : videoRanges)
                     {
-                    case CacheDirection::Forward:
+                        const auto start = std::max(range.start_time(), thread.currentTime);
+                        if (start <= range.end_time_inclusive())
+                            forwardRequests(start, range.end_time_inclusive(), inc);
+                    }
+                    for (const auto& range : videoRanges)
                     {
-                        // If we are stopped, and we are looping, we have to
-                        // check the last video range we added at the end of
-                        // the timeline to read it backwards
-                        if (mutex.playback == Playback::Stop &&
-                            loop->get() == Loop::Loop &&
-                            range.start_time() !=
-                                thread.inOutRange.start_time() &&
-                            range.end_time_inclusive() ==
-                                thread.inOutRange.end_time_inclusive())
-                        {
-                            const auto start = range.end_time_inclusive();
-                            const auto end = range.start_time();
-                            const auto inc = OTIO_NS::RationalTime(
-                                1.0, range.duration().rate());
-                            reverseRequests(start, end, inc);
-                        }
-                        else
-                        {
-                            const OTIO_NS::RationalTime start =
-                                range.start_time();
-                            const OTIO_NS::RationalTime end =
-                                range.end_time_inclusive();
-                            const OTIO_NS::RationalTime inc = OTIO_NS::RationalTime(
-                                1.0, range.duration().rate());
-                            forwardRequests(start, end, inc);
-                        }
-                        break;
+                        const auto end = std::min(range.end_time_inclusive(), thread.currentTime - inc);
+                        if (range.start_time() <= end)
+                            forwardRequests(range.start_time(), end, inc);
                     }
-                    case CacheDirection::Reverse:
-                    {
-                        const auto start = range.end_time_inclusive();
-                        const auto end = range.start_time();
-                        const auto inc =
-                            OTIO_NS::RationalTime(1.0, range.duration().rate());
-                        reverseRequests(start, end, inc);
-                        break;
-                    }
-                    default:
-                        break;
-                    }
+                }
+                else
+                {
+                    // Preserve the reverse image-cache fill behavior.
+                    for (const auto& range : videoRanges)
+                        reverseRequests(range.end_time_inclusive(), range.start_time(), inc);
                 }
             }
 

@@ -515,7 +515,8 @@ namespace tl
         }
 
         bool ReadAudio::process(
-            const OTIO_NS::RationalTime& currentTime, size_t sampleCount)
+            const OTIO_NS::RationalTime& currentTime, size_t sampleCount,
+            const std::shared_ptr<io::CancellationToken>& cancellation)
         {
             bool out = false;
             const size_t bufferSampleCount = audio::getSampleCount(_buffer);
@@ -523,7 +524,8 @@ namespace tl
             {
                 Packet packet;
                 int decoding = 0;
-                while (0 == decoding)
+                while (0 == decoding &&
+                       !(cancellation && cancellation->isCancelled()))
                 {
                     if (!_eof)
                     {

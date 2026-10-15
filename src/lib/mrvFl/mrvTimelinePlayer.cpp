@@ -430,7 +430,7 @@ namespace mrv
         const auto oneFrame =
             OTIO_NS::RationalTime(1.0, timeRange().duration().rate());
         auto time = currentTime() - oneFrame;
-        if (time <= inOutRange().start_time())
+        if (time < inOutRange().start_time())
         {
             switch (loop())
             {

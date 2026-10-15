@@ -195,6 +195,9 @@ namespace tl
             std::future<io::VideoData> readVideo(
                 const OTIO_NS::RationalTime&,
                 const io::Options& = io::Options()) override;
+            std::future<io::VideoData> readVideo(
+                const OTIO_NS::RationalTime&, const io::Options&,
+                const std::shared_ptr<io::CancellationToken>&) override;
             void setCache(const std::shared_ptr<io::Cache>&) override;
             void cancelRequests() override;
 
@@ -238,6 +241,9 @@ namespace tl
             std::future<io::AudioData> readAudio(
                 const OTIO_NS::TimeRange&,
                 const io::Options& = io::Options()) override;
+            std::future<io::AudioData> readAudio(
+                const OTIO_NS::TimeRange&, const io::Options&,
+                const std::shared_ptr<io::CancellationToken>&) override;
             void cancelRequests() override;
 
             std::string getError() const override;

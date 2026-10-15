@@ -1462,13 +1462,12 @@ namespace tl
             const OTIO_NS::RationalTime& time, const io::Options& options)
         {
             TLRENDER_P();
-            (p.requestId)++;
             auto request = std::make_shared<Private::PendingVideoRequest>();
-            request->id = p.requestId;
+            request->id = ++p.requestId;
             request->time = time;
             request->options = options;
             VideoRequest out;
-            out.id = p.requestId;
+            out.id = request->id;
             out.future = request->promise.get_future();
             bool valid = false;
             {
@@ -1476,6 +1475,7 @@ namespace tl
                 if (!p.mutex.stopped)
                 {
                     valid = true;
+                    p.mutex.cancellations[request->id] = request->cancellation;
                     p.mutex.videoRequests.push_back(request);
                 }
             }
@@ -1494,13 +1494,12 @@ namespace tl
         Timeline::getAudio(double seconds, const io::Options& options)
         {
             TLRENDER_P();
-            (p.requestId)++;
             auto request = std::make_shared<Private::PendingAudioRequest>();
-            request->id = p.requestId;
+            request->id = ++p.requestId;
             request->seconds = seconds;
             request->options = options;
             AudioRequest out;
-            out.id = p.requestId;
+            out.id = request->id;
             out.future = request->promise.get_future();
             bool valid = false;
             {
@@ -1508,6 +1507,7 @@ namespace tl
                 if (!p.mutex.stopped)
                 {
                     valid = true;
+                    p.mutex.cancellations[request->id] = request->cancellation;
                     p.mutex.audioRequests.push_back(request);
                 }
             }
@@ -1526,6 +1526,21 @@ namespace tl
         {
             TLRENDER_P();
             std::unique_lock<std::mutex> lock(p.mutex.mutex);
+            // Tokens cover requests already taken by the timeline thread as
+            // well as those passed to the reader. Only the owning worker
+            // completes an in-progress promise.
+            for (const auto id : ids)
+            {
+                const auto i = p.mutex.cancellations.find(id);
+                if (i != p.mutex.cancellations.end())
+                {
+                    if (auto cancellation = i->second.lock())
+                    {
+                        cancellation->cancel();
+                    }
+                    p.mutex.cancellations.erase(i);
+                }
+            }
             {
                 auto i = p.mutex.videoRequests.begin();
                 while (i != p.mutex.videoRequests.end())
@@ -1533,6 +1548,7 @@ namespace tl
                     const auto j = std::find(ids.begin(), ids.end(), (*i)->id);
                     if (j != ids.end())
                     {
+                        (*i)->promise.set_value(VideoFrame());
                         i = p.mutex.videoRequests.erase(i);
                     }
                     else
@@ -1548,6 +1564,7 @@ namespace tl
                     const auto j = std::find(ids.begin(), ids.end(), (*i)->id);
                     if (j != ids.end())
                     {
+                        (*i)->promise.set_value(AudioFrame());
                         i = p.mutex.audioRequests.erase(i);
                     }
                     else
@@ -1556,6 +1573,17 @@ namespace tl
                     }
                 }
             }
+            lock.unlock();
+            p.thread.cv.notify_one();
+        }
+
+        void Timeline::setRequestPriority(
+            const OTIO_NS::RationalTime& time, bool reverse)
+        {
+            TLRENDER_P();
+            std::unique_lock<std::mutex> lock(p.mutex.mutex);
+            p.mutex.priorityTime = time;
+            p.mutex.priorityReverse = reverse;
         }
 
         void Timeline::tick()
@@ -1650,6 +1678,52 @@ namespace tl
                      p.mutex.otioTimeline = nullptr;
                      p.mutex.otioTimelineChanged = true;
                  }
+                // Release obsolete in-flight slots without waiting for their
+                // reader futures. The same token stops FFmpeg cooperatively.
+                for (auto i = p.thread.videoRequestsInProgress.begin();
+                     i != p.thread.videoRequestsInProgress.end();)
+                {
+                    if ((*i)->cancellation->isCancelled())
+                    {
+                        (*i)->promise.set_value(VideoFrame());
+                        p.mutex.cancellations.erase((*i)->id);
+                        i = p.thread.videoRequestsInProgress.erase(i);
+                    }
+                    else
+                        ++i;
+                }
+                for (auto i = p.thread.audioRequestsInProgress.begin();
+                     i != p.thread.audioRequestsInProgress.end();)
+                {
+                    if ((*i)->cancellation->isCancelled())
+                    {
+                        (*i)->promise.set_value(AudioFrame());
+                        p.mutex.cancellations.erase((*i)->id);
+                        i = p.thread.audioRequestsInProgress.erase(i);
+                    }
+                    else
+                        ++i;
+                }
+                if (time::isValid(p.mutex.priorityTime))
+                {
+                    const auto priorityTime = p.mutex.priorityTime;
+                    const bool reverse = p.mutex.priorityReverse;
+                    p.mutex.videoRequests.sort(
+                        [priorityTime, reverse](const auto& a, const auto& b)
+                        {
+                            const double da = (a->time - priorityTime).value();
+                            const double db = (b->time - priorityTime).value();
+                            const bool behindA = reverse ? da > 0 : da < 0;
+                            const bool behindB = reverse ? db > 0 : db < 0;
+                            if (behindA != behindB)
+                                return !behindA;
+                            // Keep read-behind in ascending order for the
+                            // stateful movie decoder, and nearest first ahead.
+                            if (behindA)
+                                return a->time < b->time;
+                            return reverse ? a->time > b->time : a->time < b->time;
+                        });
+                }
                  while (!p.mutex.videoRequests.empty() &&
                         (p.thread.videoRequestsInProgress.size() +
                          newVideoRequests.size()) < p.options.videoRequestMax)
@@ -1705,7 +1779,7 @@ namespace tl
                                     {
                                         videoLayerData.image = _readVideo(
                                             otioClip, requestTime,
-                                            request->options);
+                                            request->options, request->cancellation);
                                         videoLayerData.bounds = getCanvasBox(
                                             getMediaReferenceBounds(p.mediaReference(otioClip)),
                                             p.options.spatial,
@@ -1754,7 +1828,7 @@ namespace tl
                                             {
                                                 videoLayerData.imageB = _readVideo(
                                                     otioClipB, requestTime,
-                                                    request->options);
+                                                    request->options, request->cancellation);
                                                 videoLayerData.boundsB = getCanvasBox(
                                                     getMediaReferenceBounds(p.mediaReference(otioClipB)),
                                                     p.options.spatial,
@@ -1805,7 +1879,7 @@ namespace tl
                                             {
                                                 videoLayerData.image = _readVideo(
                                                     otioClipB, requestTime,
-                                                    request->options);
+                                                    request->options, request->cancellation);
                                                 videoLayerData.bounds = getCanvasBox(
                                                     getMediaReferenceBounds(p.mediaReference(otioClipB)),
                                                     p.options.spatial,
@@ -1931,7 +2005,7 @@ namespace tl
                                         {
                                             audioData.audio = _readAudio(
                                                 otioClip, audioData.timeRange,
-                                                request->options);
+                                                request->options, request->cancellation);
                                         }
 
                                         if (auto otioTransition =
@@ -2023,7 +2097,13 @@ namespace tl
                 if (valid)
                 {
                     const auto frame = p.videoFrame(**videoRequestIt);
-                    (*videoRequestIt)->promise.set_value(frame);
+                    {
+                        std::unique_lock<std::mutex> lock(p.mutex.mutex);
+                        auto& request = *videoRequestIt;
+                        request->promise.set_value(
+                            request->cancellation->isCancelled() ? VideoFrame() : frame);
+                        p.mutex.cancellations.erase(request->id);
+                    }
                     videoRequestIt = p.thread.videoRequestsInProgress.erase(videoRequestIt);
                     continue;
                 }
@@ -2046,7 +2126,13 @@ namespace tl
                 if (valid)
                 {
                     const auto frame = p.audioFrame(**audioRequestIt);
-                    (*audioRequestIt)->promise.set_value(frame);
+                    {
+                        std::unique_lock<std::mutex> lock(p.mutex.mutex);
+                        auto& request = *audioRequestIt;
+                        request->promise.set_value(
+                            request->cancellation->isCancelled() ? AudioFrame() : frame);
+                        p.mutex.cancellations.erase(request->id);
+                    }
                     audioRequestIt =
                         p.thread.audioRequestsInProgress.erase(audioRequestIt);
                     continue;
@@ -2057,7 +2143,8 @@ namespace tl
 
         std::future<io::VideoData> Timeline::_readVideo(
             const OTIO_NS::Clip* clip, const OTIO_NS::RationalTime& time,
-            const io::Options& options)
+            const io::Options& options,
+            const std::shared_ptr<io::CancellationToken>& cancellation)
         {
             TLRENDER_P();
 
@@ -2099,18 +2186,21 @@ namespace tl
                     ioInfo.videoTime->duration().rate());
                 out = seq ?
                       p.submitRead(
-                          [seq, mediaTime, optionsMerged]
+                          [seq, mediaTime, optionsMerged, cancellation]
                               {
+                                  if (cancellation && cancellation->isCancelled())
+                                      return io::VideoData();
                                   return seq->readVideo(mediaTime, optionsMerged);
                               }) :
-                      read->readVideo(mediaTime, optionsMerged);
+                      read->readVideo(mediaTime, optionsMerged, cancellation);
             }
             return out;
         }
 
         std::future<io::AudioData> Timeline::_readAudio(
             const OTIO_NS::Clip* clip, const OTIO_NS::TimeRange& timeRange,
-            const io::Options& options)
+            const io::Options& options,
+            const std::shared_ptr<io::CancellationToken>& cancellation)
         {
             TLRENDER_P();
 
@@ -2138,7 +2228,7 @@ namespace tl
                     const auto mediaRange = timeline::toAudioMediaTime(
                         timeRange, timeRangeOpt.value(), trimmedRange,
                         ioInfo.audio.sampleRate);
-                    out = read->readAudio(mediaRange, optionsMerged);
+                    out = read->readAudio(mediaRange, optionsMerged, cancellation);
                 }
             }
             return out;
@@ -2230,6 +2320,9 @@ namespace tl
                 {
                     std::unique_lock<std::mutex> lock(p.mutex.mutex);
                     p.mutex.stopped = true;
+                    for (const auto& i : p.mutex.cancellations)
+                        if (auto token = i.second.lock()) token->cancel();
+                    p.mutex.cancellations.clear();
                     videoRequests = std::move(p.mutex.videoRequests);
                     audioRequests = std::move(p.mutex.audioRequests);
                 }

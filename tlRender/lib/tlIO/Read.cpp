@@ -35,8 +35,34 @@ namespace tl
             return 0;
         }
 
+        std::future<VideoData> IVideoRead::readVideo(
+            const OTIO_NS::RationalTime& time, const Options& options,
+            const std::shared_ptr<CancellationToken>& cancellation)
+        {
+            if (cancellation && cancellation->isCancelled())
+            {
+                std::promise<VideoData> promise;
+                promise.set_value(VideoData());
+                return promise.get_future();
+            }
+            return readVideo(time, options);
+        }
+
         IVideoRead::~IVideoRead()
         {}
+
+        std::future<AudioData> IAudioRead::readAudio(
+            const OTIO_NS::TimeRange& time, const Options& options,
+            const std::shared_ptr<CancellationToken>& cancellation)
+        {
+            if (cancellation && cancellation->isCancelled())
+            {
+                std::promise<AudioData> promise;
+                promise.set_value(AudioData());
+                return promise.get_future();
+            }
+            return readAudio(time, options);
+        }
 
         IAudioRead::~IAudioRead()
         {}

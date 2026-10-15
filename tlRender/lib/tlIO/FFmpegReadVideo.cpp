@@ -1514,14 +1514,16 @@ namespace tl
 
         bool ReadVideo::process(
             const bool backwards, const OTIO_NS::RationalTime& targetTime,
-            OTIO_NS::RationalTime& currentTime)
+            OTIO_NS::RationalTime& currentTime,
+            const std::shared_ptr<io::CancellationToken>& cancellation)
         {
             bool out = false;
             if (_avStream != -1 && _buffer.size() < _options.videoBufferSize)
             {
                 Packet packet;
                 int decoding = 0;
-                while (0 == decoding)
+                while (0 == decoding &&
+                       !(cancellation && cancellation->isCancelled()))
                 {
                     if (!_eof)
                     {

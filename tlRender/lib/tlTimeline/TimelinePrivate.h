@@ -202,7 +202,7 @@ namespace tl
             // reference is not capped by a canvas built for a proxy. Equal to
             // the resolution of the active reference when a clip has only one.
             math::Size2i maxVideoSize;
-            uint64_t requestId = 0;
+            std::atomic<uint64_t> requestId{0};
 
             struct VideoLayerData
             {
@@ -225,6 +225,8 @@ namespace tl
                 OTIO_NS::RationalTime time = time::invalidTime;
                 io::Options options;
                 std::promise<VideoFrame> promise;
+                std::shared_ptr<io::CancellationToken> cancellation =
+                    std::make_shared<io::CancellationToken>();
 
                 std::vector<VideoLayerData> layerData;
             };
@@ -250,6 +252,8 @@ namespace tl
                 double seconds = -1.0;
                 io::Options options;
                 std::promise<AudioFrame> promise;
+                std::shared_ptr<io::CancellationToken> cancellation =
+                    std::make_shared<io::CancellationToken>();
 
                 std::vector<AudioLayerData> layerData;
             };
@@ -275,6 +279,9 @@ namespace tl
                 std::list<std::shared_ptr<PendingVideoRequest> > videoRequests;
                 std::list<std::shared_ptr<PendingAudioRequest> > audioRequests;
                 bool stopped = false;
+                std::map<uint64_t, std::weak_ptr<io::CancellationToken> > cancellations;
+                OTIO_NS::RationalTime priorityTime = time::invalidTime;
+                bool priorityReverse = false;
                 std::string readError;
                 size_t readErrorCount = 0;
                 // The requested media reference keys, handed to the request
