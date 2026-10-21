@@ -141,6 +141,12 @@ set(SOURCES
 
 list(APPEND LIBRARIES mrvFlmm mrvIcons mrvCore ${FLTK_LIBRARIES})
 list(APPEND LIBRARIES_PRIVATE ${JASPER_LIBRARIES} MINIZIP::minizip)
+if(TLRENDER_OCIO)
+    # mrvVersion.cpp calls XML_ExpatVersionInfo directly. OpenColorIO may
+    # keep its Expat dependency private, so link it explicitly here.
+    find_package(EXPAT REQUIRED)
+    list(APPEND LIBRARIES_PRIVATE EXPAT::EXPAT)
+endif()
 if(TLRENDER_GL AND MRV2_BACKEND STREQUAL "GL")
     if (NOT WIN32)
 	list(APPEND LIBRARIES ${FLTK_gl_LIBRARY})
