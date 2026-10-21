@@ -135,7 +135,7 @@ find_package(FLTK CONFIG REQUIRED)
 find_package(harfbuzz REQUIRED)
 
 set(LIBRARIES OTIO::opentimelineio fltk::fltk-shared harfbuzz::harfbuzz Imath::Imath nlohmann_json::nlohmann_json)
-set(LIBRARIES_PRIVATE Freetype::Freetype MINIZIP::minizip-ng ZLIB::ZLIB)
+set(LIBRARIES_PRIVATE Freetype::Freetype MINIZIP::minizip ZLIB::ZLIB)
 if(TLRENDER_OCIO)
     list(APPEND LIBRARIES OpenColorIO::OpenColorIO)
 endif()

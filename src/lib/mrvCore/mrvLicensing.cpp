@@ -36,7 +36,7 @@
 
 #include <nlohmann/json.hpp>
 
-#ifdef TLRENDER_NET
+#if defined(TLRENDER_SSL) || defined(TLRENDER_NET)
 #    include <openssl/evp.h>
 #    include <openssl/pem.h>
 #    include <openssl/bio.h>

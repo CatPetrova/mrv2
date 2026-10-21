@@ -87,7 +87,8 @@ namespace tl
             void seek(const OTIO_NS::RationalTime&);
             bool process(
                 const bool backwards, const OTIO_NS::RationalTime& targetTime,
-                OTIO_NS::RationalTime& currentTime);
+                OTIO_NS::RationalTime& currentTime,
+                const std::shared_ptr<io::CancellationToken>& = nullptr);
 
             bool isBufferEmpty() const;
             std::shared_ptr<image::Image> popBuffer();
@@ -177,7 +178,8 @@ namespace tl
             void start();
             void seek(const OTIO_NS::RationalTime&);
             bool
-            process(const OTIO_NS::RationalTime& currentTime, size_t sampleCount);
+            process(const OTIO_NS::RationalTime& currentTime, size_t sampleCount,
+                    const std::shared_ptr<io::CancellationToken>& = nullptr);
 
             size_t getBufferSize() const;
             void bufferCopy(uint8_t*, size_t sampleCount);
@@ -248,6 +250,7 @@ namespace tl
                 OTIO_NS::RationalTime time = time::invalidTime;
                 io::Options options;
                 std::promise<io::VideoData> promise;
+                std::shared_ptr<io::CancellationToken> cancellation;
             };
 
             struct VideoMutex
@@ -297,6 +300,7 @@ namespace tl
                 OTIO_NS::TimeRange timeRange = time::invalidTimeRange;
                 io::Options options;
                 std::promise<io::AudioData> promise;
+                std::shared_ptr<io::CancellationToken> cancellation;
             };
 
             std::shared_ptr<io::Cache> cache;

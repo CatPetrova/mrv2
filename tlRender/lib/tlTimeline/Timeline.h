@@ -343,10 +343,12 @@ namespace tl
                 const io::Options&);
             std::future<io::VideoData> _readVideo(
                 const OTIO_NS::Clip*, const OTIO_NS::RationalTime&,
-                const io::Options&);
+                const io::Options&,
+                const std::shared_ptr<io::CancellationToken>&);
             std::future<io::AudioData> _readAudio(
                 const OTIO_NS::Clip*, const OTIO_NS::TimeRange&,
-                const io::Options&);
+                const io::Options&,
+                const std::shared_ptr<io::CancellationToken>&);
             bool _getVideoInfo(const OTIO_NS::Composable*);
             bool _getAudioInfo(const OTIO_NS::Composable*);
             void _getCanvas();

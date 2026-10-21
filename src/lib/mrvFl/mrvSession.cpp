@@ -193,7 +193,9 @@ namespace mrv
                 {"USD", (usdPanel != nullptr)},
 #endif
                 {"Logs", (logsPanel != nullptr)},
+#ifdef MRV2_NETWORK
                 {"WebRTC", (webrtcPanel != nullptr)},
+#endif
             };
 
             if (filesPanel)
@@ -234,8 +236,10 @@ namespace mrv
                 waveformPanel->save();
             if (logsPanel)
                 logsPanel->save();
+#ifdef MRV2_NETWORK
             if (webrtcPanel)
                 webrtcPanel->save();
+#endif
 
             std::string config = ui->uiPrefs->OCIOConfig->value();
 

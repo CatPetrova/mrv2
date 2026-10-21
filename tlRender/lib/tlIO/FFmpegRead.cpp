@@ -348,10 +348,18 @@ namespace tl
         std::future<io::VideoData> VideoRead::readVideo(
             const OTIO_NS::RationalTime& time, const io::Options& options)
         {
+            return readVideo(time, options, nullptr);
+        }
+
+        std::future<io::VideoData> VideoRead::readVideo(
+            const OTIO_NS::RationalTime& time, const io::Options& options,
+            const std::shared_ptr<io::CancellationToken>& cancellation)
+        {
             TLRENDER_P();
             auto request = std::make_shared<Private::VideoRequest>();
             request->time = time;
             request->options = io::merge(options, _options);
+            request->cancellation = cancellation;
             auto future = request->promise.get_future();
             bool valid = false;
             {
@@ -446,6 +454,13 @@ namespace tl
                     request->promise.set_value(p.info);
                 }
 
+                if (videoRequest && videoRequest->cancellation &&
+                    videoRequest->cancellation->isCancelled())
+                {
+                    videoRequest->promise.set_value(io::VideoData());
+                    continue;
+                }
+
                 // Check the cache. The key is built once and reused when the
                 // decoded frame is added below.
                 std::string cacheKey;
@@ -478,9 +493,9 @@ namespace tl
                    const double delta =
                        (videoRequest->time.rescaled_to(rate) -
                         p.videoThread.currentTime.rescaled_to(rate)).value();
-                   if (delta != 0.F)
+                   if (delta != 0.F || !time::isValid(p.videoThread.currentTime))
                    {
-                       if (delta > 0 &&
+                       if (time::isValid(p.videoThread.currentTime) && delta > 0 &&
                            p.readVideo->canDecodeForward(
                                videoRequest->time, p.videoThread.currentTime))
                        {
@@ -493,7 +508,8 @@ namespace tl
                        }
                        else
                        {
-                           if (p.cache && delta < 0) backwards = true;
+                           if (p.cache && time::isValid(p.videoThread.currentTime) &&
+                               delta < 0) backwards = true;
                            else p.videoThread.currentTime = videoRequest->time;
                            p.readVideo->seek(videoRequest->time);
                        }
@@ -501,11 +517,13 @@ namespace tl
                }
 
                 // Process.
-                while (videoRequest && p.readVideo->isBufferEmpty() &&
+                while (videoRequest &&
+                       !(videoRequest->cancellation && videoRequest->cancellation->isCancelled()) &&
+                       p.readVideo->isBufferEmpty() &&
                        p.readVideo->isValid() &&
                        p.readVideo->process(
                            backwards, videoRequest->time,
-                           p.videoThread.currentTime))
+                           p.videoThread.currentTime, videoRequest->cancellation))
                 {
                     if (backwards)
                     {
@@ -523,6 +541,14 @@ namespace tl
                     }
                 }
 
+                if (videoRequest && videoRequest->cancellation &&
+                    videoRequest->cancellation->isCancelled())
+                {
+                    videoRequest->promise.set_value(io::VideoData());
+                    // Force a seek/flush after abandoning a partially decoded run.
+                    p.videoThread.currentTime = time::invalidTime;
+                    continue;
+                }
                 if (videoRequest)
                 {
                     // Handle the request.
@@ -696,10 +722,18 @@ namespace tl
             const OTIO_NS::TimeRange& timeRange,
             const io::Options& options)
         {
+            return readAudio(timeRange, options, nullptr);
+        }
+
+        std::future<io::AudioData> AudioRead::readAudio(
+            const OTIO_NS::TimeRange& timeRange, const io::Options& options,
+            const std::shared_ptr<io::CancellationToken>& cancellation)
+        {
             TLRENDER_P();
             auto request = std::make_shared<Private::AudioRequest>();
             request->timeRange = timeRange;
             request->options = io::merge(options, _options);
+            request->cancellation = cancellation;
             auto future = request->promise.get_future();
             bool valid = false;
             {
@@ -826,6 +860,11 @@ namespace tl
                     p.audioMutex.requests.pop_front();
                 }
 
+                if (request->cancellation && request->cancellation->isCancelled())
+                {
+                    request->promise.set_value(io::AudioData());
+                    continue;
+                }
                 requestSampleCount =
                     request->timeRange.duration()
                     .rescaled_to(p.info.audio.sampleRate)
@@ -869,6 +908,7 @@ namespace tl
                         request->timeRange.intersects(p.info.audioTime.value());
                 }
                 while (request && intersects &&
+                       !(request->cancellation && request->cancellation->isCancelled()) &&
                        p.readAudio->getBufferSize() <
                            request->timeRange.duration()
                                .rescaled_to(p.info.audio.sampleRate)
@@ -880,9 +920,16 @@ namespace tl
                                ? requestSampleCount
                                : p.options.audioBufferSize
                                      .rescaled_to(p.info.audio.sampleRate)
-                                     .value()))
+                                     .value(), request->cancellation))
                     ;
 
+                if (request && request->cancellation && request->cancellation->isCancelled())
+                {
+                    request->promise.set_value(io::AudioData());
+                    p.audioThread.currentTime = time::invalidTime;
+                    stale = true;
+                    continue;
+                }
                 // Handle request.
                 if (request)
                 {

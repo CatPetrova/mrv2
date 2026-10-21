@@ -111,6 +111,10 @@ endif()
 
 # These ones are required not for building but for getting the include
 # path to their version.h file or similar.
+# lunasvg/plutovg exports Threads::Threads, and mrvCore/mrvImage use
+# OpenEXR directly even when tlRender EXR file I/O is disabled.
+find_package(Threads REQUIRED)
+find_package(OpenEXR CONFIG REQUIRED)
 find_package(tlRender REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(minizip REQUIRED)
@@ -340,11 +344,7 @@ set( mrv2_FLUID_INCLUDE_DIR
 set( mrv2_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/lib   # for mrv2 includes (search here first)
     ${mrv2_FLUID_INCLUDE_DIR}         # for mrv2 .fl converted files next
-    ${CMAKE_PREFIX_PATH}/include/OpenEXR
-    ${CMAKE_PREFIX_PATH}/include/Imath
-    ${CMAKE_PREFIX_PATH}/include/opentimelineio/deps
-    ${CMAKE_PREFIX_PATH}/include/tlRender
-    ${CMAKE_PREFIX_PATH}/include
+    ${FLTK_INCLUDE_DIRS}              # use the selected FLTK, before dependencies
     ${tlRender_INCLUDE_DIRS}
     # We need to include all these non-public tlRender directories
     # as we get the version information from them as well as some variables
