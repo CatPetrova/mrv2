@@ -154,7 +154,6 @@ namespace tl
 
             // Hardware accelerated information.
             bool _hwAccel = false;
-            bool _hwLogged = false;
             AVBufferRef* _hwDeviceContext = nullptr;
             AVPixelFormat _hwPixelFormat = AV_PIX_FMT_NONE;
             AVFrame* _swFrame = nullptr;

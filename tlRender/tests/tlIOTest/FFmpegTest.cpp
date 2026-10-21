@@ -182,8 +182,10 @@ namespace tl
             const std::vector<image::Size> sizes = {
                 image::Size(640, 480), image::Size(80, 60), image::Size(0, 0)};
             const std::vector<std::pair<std::string, std::string> > options = {
-                // {"FFmpeg/HWAccel", "0"}
-                // {"FFmpeg/HWAccel", "1"}
+                {"FFmpeg/HardwareDecode", "0"},
+                {"FFmpeg/HardwareDecode", "1"},
+                {"FFmpeg/HWAccel", "0"},
+                {"FFmpeg/HWAccel", "1"},
                 {"FFmpeg/YUVToRGBConversion", "1"},
                 {"FFmpeg/ThreadCount", "1"},
                 {"FFmpeg/RequestTimeout", "1"},

@@ -143,7 +143,11 @@
          p.defaultValues["Performance/FFmpegThreadCount"] = 0;
          p.defaultValues["Performance/FFmpegYUVToRGBConversion"] = 0;
          p.defaultValues["Performance/FFmpegColorAccuracy"] = 0;
+#if defined(__APPLE__)
+         p.defaultValues["Performance/FFmpegHWAccel"] = 1;
+#else
          p.defaultValues["Performance/FFmpegHWAccel"] = 0;
+#endif
          p.defaultValues["Performance/FFmpegHWDriver"] = "";
 
          p.defaultValues["Misc/MaxFileSequenceDigits"] = 9;

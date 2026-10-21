@@ -128,7 +128,7 @@ def main():
         print(f"Failed: {len(failures)}")
         for name, error in failures:
             print(f"  {name}: {error}")
-        return 0
+        return 1
 
     print("All fixtures passed.")
     return 0
